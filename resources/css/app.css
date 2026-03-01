@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+.roles-page .stat-card {
+    border-radius: 14px !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.roles-page .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1) !important;
+}
+.roles-page .stat-icon {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Role list */
+.roles-page .role-item {
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+.roles-page .role-item:hover {
+    background-color: #f0f4ff;
+    border-left-color: #0d6efd;
+}
+.roles-page .active-role {
+    background-color: #eef3ff !important;
+    border-left-color: #0d6efd !important;
+}
+
+/* Permission table */
+.roles-page .perm-table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6c757d;
+    font-weight: 600;
+}
+.roles-page .perm-table tbody tr:hover {
+    background-color: #f8f9ff;
+}
+.roles-page .perm-check {
+    width: 1.1em;
+    height: 1.1em;
+    cursor: pointer;
+}
+.roles-page .perm-check:disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+}
+
+/* Cards border-radius */
+.roles-page .card {
+    border-radius: 14px !important;
+}
+.roles-page .card-header {
+    border-radius: 14px 14px 0 0 !important;
+}

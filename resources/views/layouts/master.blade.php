@@ -15,7 +15,7 @@
     <!-- jQuery (necessary for DataTables) -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.css">
  
- 
+     @livewireStyles
     
     <style>
       body {
@@ -80,6 +80,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
  
     @vite(['resources/css/app.css', 'resources/js/app.js'])
- 
+    @livewireScripts
 </body>
 </html>

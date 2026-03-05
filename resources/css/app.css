@@ -109,3 +109,50 @@
     opacity: 0.7;
     pointer-events: none;
 }
+
+ /* ── Stat Cards ── */
+.stat-card { transition: transform .15s, box-shadow .15s; }
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.08) !important; }
+.stat-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+/* ── Table ── */
+.users-table thead th { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; font-weight: 600; }
+.users-table tbody tr { transition: background .1s; }
+.users-table tbody tr:hover { background: #f8f9ff; }
+.avatar-circle { width: 36px; height: 36px; font-size: .8rem; font-weight: 700; flex-shrink: 0; }
+
+/* ── Status badges ── */
+.badge-pending   { background: #fff3cd; color: #856404; }
+.badge-active    { background: #d1e7dd; color: #0f5132; }
+.badge-suspended { background: #f8d7da; color: #842029; }
+.badge-rejected  { background: #e2e3e5; color: #41464b; }
+
+/* ── Approval card highlight ── */
+.approval-card { border-left: 4px solid #ffc107 !important; }
+.approval-card .card-header { background: #fffbf0 !important; }
+
+/* ── Row actions ── */
+.row-actions .btn { opacity: 0; transition: opacity .15s; }
+tr:hover .row-actions .btn { opacity: 1; }
+
+/* ── Tabs ── */
+.nav-tabs .nav-link { font-size: .875rem; color: #6c757d; border: none; border-bottom: 2px solid transparent; padding: .5rem 1rem; }
+.nav-tabs .nav-link.active { color: #0d6efd; border-bottom-color: #0d6efd; font-weight: 600; background: transparent; }
+.nav-tabs { border-bottom: 1px solid #dee2e6; }
+
+/* ── Role pill ── */
+.role-pill { font-size: .7rem; padding: .25rem .6rem; border-radius: 20px; font-weight: 600; }
+
+/* ── Search/filter bar ── */
+.filter-bar .form-control, .filter-bar .form-select { font-size: .875rem; }
+
+/* ── Pending banner ── */
+.pending-banner { background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%); border: 1px solid #ffe082; }
+
+@media (max-width: 576px) {
+    .hide-xs { display: none !important; }
+    .row-actions .btn { opacity: 1; }
+}
+@media (max-width: 768px) {
+    .hide-sm { display: none !important; }
+}

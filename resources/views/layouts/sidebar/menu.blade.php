@@ -71,7 +71,7 @@
             <li class="nav-item">
                 <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Cohort Management" style="color: #333;">
                     <i class="bi bi-people-fill fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
-                    <span class="fw-medium sidebar-text ms-3 me-auto" style="color: #142552;">Cohort Management</span>
+                    <span class="fw-medium sidebar-text ms-3 me-auto" style="color: #142552;">Manage Cohorts</span>
                     <span class="badge ms-2 sidebar-badge flex-shrink-0" style="background-color: #05923b; color: white;">ESO</span>
                 </a>
             </li>
@@ -171,20 +171,6 @@
                                 color: {{ request()->routeIs('roles.*') ? '#05923b' : 'white' }};">
                         Admin
                     </span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Pending Approvals" style="color: #333;">
-                    <i class="bi bi-person-check-fill fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
-                    <span class="fw-medium sidebar-text ms-3" style="color: #142552;">Pending Approvals</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Suspended Accounts" style="color: #333;">
-                    <i class="bi bi-person-x-fill fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
-                    <span class="fw-medium sidebar-text ms-3" style="color: #142552;">Suspended Accounts</span>
                 </a>
             </li>
 

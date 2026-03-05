@@ -3,10 +3,11 @@
 use Livewire\Component;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Livewire\Attributes\On; 
 
 new class extends Component
 {
-    public $selectedRoleId = null;
+    public ?int $selectedRoleId = null;
     public $role = null;
     public $permissions = [];
     public $modules = [];
@@ -44,6 +45,8 @@ new class extends Component
         }
     }
 
+
+
     public function loadPermissions($roleId)
     {
         $this->selectedRoleId = $roleId;
@@ -62,20 +65,44 @@ new class extends Component
         }
     }
 
-    public function toggleAll($state)
+   public function grantAll()
     {
-        foreach ($this->permissionStates as $key => $value) {
-            $this->permissionStates[$key] = $state;
+        if (!$this->selectedRoleId) {
+            $this->dispatch('notify', type: 'warning', message: 'Please select a role first.');
+            return;
         }
+
+        $role = Role::findOrFail($this->selectedRoleId);
+        $role->syncPermissions(Permission::all());
+
+        $this->loadPermissions($this->selectedRoleId); // ← pass the id
+        $this->dispatch('notify', type: 'success', message: "All permissions granted to \"{$role->name}\".");
+    }
+
+    public function revokeAll()
+    {
+        if (!$this->selectedRoleId) {
+            $this->dispatch('notify', type: 'warning', message: 'Please select a role first.');
+            return;
+        }
+
+        $role = Role::findOrFail($this->selectedRoleId);
+
+        if ($role->name === 'Super Administrator') {
+            $this->dispatch('notify', type: 'danger', message: 'Cannot revoke permissions from Super Administrator.');
+            return;
+        }
+
+        $role->syncPermissions([]);
+
+        $this->loadPermissions($this->selectedRoleId); // ← pass the id
+        $this->dispatch('notify', type: 'success', message: "All permissions revoked from \"{$role->name}\".");
     }
 
     public function savePermissions()
     {
         if (!$this->role) {
-            $this->dispatch('notify', [
-                'type' => 'error',
-                'message' => 'No role selected'
-            ]);
+            $this->dispatch('notify', type: 'error', message: 'No role selected' );
             return;
         }
 
@@ -90,10 +117,9 @@ new class extends Component
         $this->role->syncPermissions($permissions);
 
         $this->dispatch('roleUpdated');
-        $this->dispatch('notify', [
-            'type' => 'success',
-            'message' => 'Permissions saved successfully'
-        ]);
+        $this->dispatch('notify', type: 'success',
+            message:'Permissions saved successfully'
+        );
     }
 };
 ?>
@@ -115,10 +141,10 @@ new class extends Component
                 </div>
                 @if($role)
                     <div class="d-flex gap-2">
-                        <button class="btn btn-sm btn-outline-secondary" wire:click="toggleAll(false)">
+                        <button class="btn btn-sm btn-outline-secondary" wire:click="revokeAll">
                             <i class="bi bi-x-circle me-1"></i>Revoke All
                         </button>
-                        <button class="btn btn-sm btn-outline-primary" wire:click="toggleAll(true)">
+                        <button class="btn btn-sm btn-outline-primary" wire:click="grantAll">
                             <i class="bi bi-check-circle me-1"></i>Grant All
                         </button>
                         <button class="btn btn-sm btn-primary" wire:click="savePermissions" wire:loading.attr="disabled">
@@ -202,4 +228,5 @@ new class extends Component
             </div>
         @endif
     </div>
+ 
 </div>

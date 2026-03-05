@@ -94,6 +94,16 @@
     color: #6c757d;
 }
 
+.btn-primary {
+    background-color: #142552;
+    border: none;
+    transition: 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #198754;
+}
+
 /* Loading states */
 [wire\:loading], [wire\:loading\.delay] {
     opacity: 0.7;

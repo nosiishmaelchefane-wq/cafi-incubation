@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.1/css/dataTables.bootstrap5.min.css">
     <!-- jQuery (necessary for DataTables) -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.css">
- 
+     @vite(['resources/css/app.css', 'resources/js/app.js'])
      @livewireStyles
     
     <style>
@@ -49,7 +49,7 @@
 }
  
 .table-hover tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.04) !important;
+    background-color: rgba(0, 123, 255, 0.002) !important;
 }
  
     </style>
@@ -79,7 +79,7 @@
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
  
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireScriptConfig
     @livewireScripts
 </body>
 </html>

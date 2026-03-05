@@ -3,6 +3,7 @@
 use Livewire\Component;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use App\Rules\RoleValidation;
 
 new class extends Component
 {
@@ -14,14 +15,9 @@ new class extends Component
     public $baseTemplate = '';
 
 
-      public $colors = ['primary', 'success', 'danger', 'warning', 'info', 'secondary'];
+    public $colors = ['primary', 'success', 'danger', 'warning', 'info', 'secondary'];
     public $existingRoles = [];
 
-    protected $rules = [
-        'name' => 'required|min:3|unique:roles,name',
-        'description' => 'nullable|string',
-        'color' => 'required|in:primary,success,danger,warning,info,secondary',
-    ];
 
     public function mount()
     {
@@ -39,17 +35,20 @@ new class extends Component
         $this->show = false;
         $this->resetValidation();
     }
-
     public function save()
     {
-        $this->validate();
+        $this->validate([
+            'name' => ['required', new RoleValidation],
+            'description' => ['nullable', 'string'],
+            'color' => ['required', 'in:primary,success,danger,warning,info,secondary'],
+        ]);
 
         $role = Role::create([
             'name' => $this->name,
-            'guard_name' => 'web'
+            'guard_name' => 'web',
+            'description' => $this->description, 
         ]);
 
-        // If template selected, copy permissions
         if ($this->baseTemplate) {
             $templateRole = Role::where('name', $this->baseTemplate)->first();
             if ($templateRole) {
@@ -57,18 +56,16 @@ new class extends Component
             }
         }
 
-        $this->dispatch('roleCreated', roleId: $role->id);
+
+        $this->dispatch('notify', type:'success', message:'Role created successfully!');
+        $this->dispatch('delayedRoleCreated');
         $this->close();
-        
-        $this->dispatch('notify', [
-            'type' => 'success',
-            'message' => 'Role created successfully'
-        ]);
     }
 };
 ?>
 
 <div>
+      
     {{-- resources/views/livewire/roles/role-modal.blade.php --}}
    <div class="modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true" wire:ignore.self>
         <div class="modal-dialog modal-dialog-centered">
@@ -83,13 +80,13 @@ new class extends Component
                     <div class="mb-3">
                         <label class="form-label fw-medium small">Role Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control @error('name') is-invalid @enderror" 
-                               wire:model.live="name" placeholder="e.g. Evaluation Officer">
+                               wire:model="name" placeholder="e.g. Evaluation Officer">
                         @error('name') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label fw-medium small">Description</label>
-                        <textarea class="form-control" wire:model.live="description" 
+                        <textarea class="form-control" wire:model="description" 
                                   rows="2" placeholder="Brief description of this role's responsibilities"></textarea>
                     </div>
                     
@@ -98,7 +95,7 @@ new class extends Component
                         <div class="d-flex gap-2 flex-wrap">
                             @foreach($colors as $colorOption)
                                 <input type="radio" class="btn-check" 
-                                       wire:model.live="color" 
+                                       wire:model="color" 
                                        name="roleColor" 
                                        id="color_{{ $colorOption }}" 
                                        value="{{ $colorOption }}">
@@ -112,7 +109,7 @@ new class extends Component
                     
                     <div class="mb-1">
                         <label class="form-label fw-medium small">Base Permission Template</label>
-                        <select class="form-select" wire:model.live="baseTemplate">
+                        <select class="form-select" wire:model="baseTemplate">
                             <option value="">— No template, configure manually —</option>
                             @foreach($existingRoles as $roleName)
                                 <option value="{{ $roleName }}">Copy from: {{ $roleName }}</option>
@@ -136,24 +133,8 @@ new class extends Component
             </div>
         </div>
     </div>
+@push('scripts')
 
-    @push('scripts')
-    <script>
-        document.addEventListener('livewire:init', () => {
-            let modal = new bootstrap.Modal(document.getElementById('roleModal'));
-
-            Livewire.on('openRoleModal', () => {
-                modal.show();
-            });
-
-            Livewire.on('roleCreated', () => {
-                modal.hide();
-            });
-
-            Livewire.on('roleUpdated', () => {
-                modal.hide();
-            });
-        });
-    </script>
-    @endpush
+@endpush
+    
 </div>

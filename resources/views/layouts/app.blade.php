@@ -19,6 +19,7 @@
             <!-- Page Content -->
             <main class="p-4 flex-grow-1">
                 {{ $slot }}
+         
             </main>
 
         </div>

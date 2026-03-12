@@ -3,6 +3,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Entrepreneur;
+use App\Models\ESO;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -25,26 +27,16 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
-            'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
-            'phone' => fake()->phoneNumber(),
-            'bio' => fake()->paragraph(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'profile_photo' => null,
             'is_active' => true,
-            'is_suspended' => false,
-            'suspended_until' => null,
-            'suspension_reason' => null,
             'last_login_at' => fake()->dateTimeBetween('-1 month', 'now'),
             'last_login_ip' => fake()->ipv4(),
-            'timezone' => fake()->timezone(),
-            'language' => fake()->randomElement(['en', 'fr', 'es']),
-            'metadata' => json_encode([
-                'registration_source' => fake()->randomElement(['web', 'mobile', 'referral']),
-                'newsletter_subscribed' => fake()->boolean(),
-            ]),
+            'userable_type' => null,
+            'userable_id' => null,
         ];
     }
 
@@ -59,21 +51,26 @@ class UserFactory extends Factory
     }
 
     /**
-     * Indicate that the user is suspended.
+     * Indicate that the user is a Super Admin.
      */
-    public function suspended(): static
+    public function superAdmin(): static
     {
         return $this->state(fn (array $attributes) => [
-            'is_suspended' => true,
-            'suspension_reason' => 'Violation of terms',
-            'suspended_until' => now()->addDays(7),
+            'email' => 'cafisuperuser@cafi.co.ls',
+            'password' => Hash::make('SuperUser@Cafi2026'),
+            'email_verified_at' => now(),
+            'is_active' => true,
+            'userable_type' => null, 
+            'userable_id' => null,
         ]);
     }
 
+   
+
     /**
-     * Indicate that the user is inactive.
+     * Indicate that the user is suspended.
      */
-    public function inactive(): static
+    public function suspended(): static
     {
         return $this->state(fn (array $attributes) => [
             'is_active' => false,

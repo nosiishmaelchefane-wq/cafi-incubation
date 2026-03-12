@@ -12,7 +12,7 @@ new class extends Component {
     public $userId = null;
     
     #[Rule('required|min:3|max:255')]
-    public $name = '';
+    public $username = '';
 
     #[Rule('required|email')]
     public $email = '';
@@ -20,8 +20,6 @@ new class extends Component {
     #[Rule('nullable|string|max:20')]
     public $phone = '';
 
-    #[Rule('required|min:3|max:255')]
-    public $username = '';
 
     #[Rule('required|exists:roles,name')]
     public $role = '';
@@ -69,10 +67,9 @@ new class extends Component {
         // Load user data
         $user = User::with('roles')->findOrFail($userId);
         
-        $this->name = $user->name;
+        $this->username = $user->username;
         $this->email = $user->email;
         $this->phone = $user->phone;
-        $this->username = $user->username;
         $this->is_active = $user->is_active;
         
         // Get the first role (assuming single role per user)
@@ -87,9 +84,10 @@ new class extends Component {
     /**
      * Close the modal
      */
-    #[On('closeModal')]
-    public function closeModal()
+    #[On('closeUserModal')]
+    public function closeUserModal()
     {
+     
         $this->showModal = false;
         $this->resetForm();
     }
@@ -99,8 +97,9 @@ new class extends Component {
      */
     public function resetForm()
     {
+       
         $this->reset([
-            'userId', 'name', 'email', 'phone', 'username', 
+            'userId', 'username', 'email', 'phone', 
             'role', 'password', 'password_confirmation', 'is_active',
             'isEditing'
         ]);
@@ -116,10 +115,9 @@ new class extends Component {
         if ($this->isEditing) {
             // For editing
             $this->validate([
-                'name' => 'required|min:3|max:255',
+                'username' => 'required|min:3|max:255',
                 'email' => 'required|email|unique:users,email,' . $this->userId,
                 'phone' => 'nullable|string|max:20',
-                'username' => 'required|min:3|max:255|unique:users,username,' . $this->userId,
                 'role' => 'required|exists:roles,name',
                 'password' => 'nullable|min:8',
                 'password_confirmation' => 'nullable|same:password',
@@ -128,10 +126,9 @@ new class extends Component {
         } else {
             // For creating
             $this->validate([
-                'name' => 'required|min:3|max:255',
+                'username' => 'required|min:3|max:255',
                 'email' => 'required|email|unique:users,email',
                 'phone' => 'nullable|string|max:20',
-                'username' => 'required|min:3|max:255|unique:users,username',
                 'role' => 'required|exists:roles,name',
                 'password' => 'required|min:8',
                 'password_confirmation' => 'required|same:password',
@@ -145,10 +142,9 @@ new class extends Component {
                 $user = User::findOrFail($this->userId);
                 
                 $userData = [
-                    'name' => $this->name,
+                    'username' => $this->username,
                     'email' => $this->email,
                     'phone' => $this->phone,
-                    'username' => $this->username,
                     'is_active' => $this->is_active,
                 ];
                 
@@ -188,7 +184,7 @@ new class extends Component {
 
 
             // Close modal
-            $this->closeModal();
+            $this->closeUserModal();
 
         } catch (\Exception $e) {
             // Handle error
@@ -226,7 +222,7 @@ new class extends Component {
                         {{ $modalTitle }}
                     </h5>
                     <button type="button" class="btn-close" 
-                            wire:click="$dispatch('closeModal')" 
+                            wire:click="$dispatch('closeUserModal')" 
                             aria-label="Close"></button>
                 </div>
                 
@@ -238,11 +234,11 @@ new class extends Component {
                                 <i class="bi bi-person me-1"></i>Full Name
                             </label>
                             <input type="text" 
-                                   class="form-control @error('name') is-invalid @enderror" 
-                                   id="name" 
-                                   wire:model="name"
+                                   class="form-control @error('username') is-invalid @enderror" 
+                                   id="username" 
+                                   wire:model="username"
                                    placeholder="Enter full name">
-                            @error('name')
+                            @error('username')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                             <div class="form-text text-muted small">First and last name</div>
@@ -278,23 +274,6 @@ new class extends Component {
                             @enderror
                         </div>
 
-                        <!-- Username Field -->
-                        <div class="mb-3">
-                            <label for="username" class="form-label fw-semibold small text-uppercase text-muted">
-                                <i class="bi bi-at me-1"></i>Username
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light">@</span>
-                                <input type="text" 
-                                       class="form-control @error('username') is-invalid @enderror" 
-                                       id="username" 
-                                       wire:model="username"
-                                       placeholder="username">
-                                @error('username')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
 
                         <!-- Role Selection -->
                         <div class="mb-4">
@@ -376,7 +355,7 @@ new class extends Component {
 
                         <div class="modal-footer bg-light px-0 pb-0">
                             <button type="button" class="btn btn-outline-secondary" 
-                                    wire:click="$dispatch('closeModal')">
+                                    wire:click="$dispatch('closeUserModal')">
                                 <i class="bi bi-x-lg me-1"></i>
                                 Cancel
                             </button>

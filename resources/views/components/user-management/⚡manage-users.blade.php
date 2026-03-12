@@ -53,7 +53,7 @@ new class extends Component {
             ->with('roles')
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
+                    $q->where('username', 'like', '%' . $this->search . '%')
                       ->orWhere('email', 'like', '%' . $this->search . '%');
                 });
             })
@@ -209,7 +209,7 @@ new class extends Component {
         
         try {
             $user = User::findOrFail($userId);
-            $userName = $user->name;
+            $userName = $user->username;
             $user->delete();
             
             $this->dispatch('notify', type: 'success', message: "User {$userName} deleted successfully!");
@@ -320,10 +320,10 @@ new class extends Component {
                         <div class="card-body px-3 py-3">
                             <div class="d-flex align-items-center gap-3 mb-3">
                                 <div class="avatar-circle bg-info text-white rounded-circle d-flex align-items-center justify-content-center fw-bold">
-                                    {{ $user->profile_photo_url ?: strtoupper(substr($user->name, 0, 2)) }}
+                                    {{ $user->profile_photo_url ?: strtoupper(substr($user->username, 0, 2)) }}
                                 </div>
                                 <div>
-                                    <div class="fw-semibold small">{{ $user->name }}</div>
+                                    <div class="fw-semibold small">{{ $user->username }}</div>
                                     <div class="text-muted" style="font-size:.75rem;">{{ $user->email }}</div>
                                 </div>
                             </div>
@@ -408,12 +408,12 @@ new class extends Component {
                             style="transition: all 0.2s; padding: 0.25rem 0.5rem; margin: -0.25rem -0.5rem;">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="avatar-circle rounded-circle d-flex align-items-center justify-content-center fw-bold"
-                                        style="background-color: {{ '#' . substr(md5($user->name), 0, 6) }}; color: white;">
-                                        {{ strtoupper(substr($user->name, 0, 2)) }}
+                                        style="background-color: {{ '#' . substr(md5($user->username), 0, 6) }}; color: white;">
+                                        {{ strtoupper(substr($user->username, 0, 2)) }}
                                     </div>
                                     <div>
                                         <div class="fw-semibold small @if($user->is_suspended) text-muted @endif">
-                                            {{ $user->name }}
+                                            {{ $user->username }}
                                         </div>
                                         <div class="text-muted" style="font-size:.72rem;">{{ $user->email }}</div>
                                     </div>

@@ -21,7 +21,7 @@
 
             <!-- Dashboard -->
             <li class="nav-item">
-                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 active-nav shadow-sm" data-tooltip="Dashboard" style="background-color: #05923b; color: white;">
+                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 active-nav shadow-sm" data-tooltip="Dashboard">
                     <i class="bi bi-speedometer2 fs-5 nav-icon flex-shrink-0"></i>
                     <span class="fw-medium sidebar-text ms-3">Dashboard</span>
                 </a>

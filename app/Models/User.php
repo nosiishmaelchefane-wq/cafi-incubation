@@ -3,62 +3,57 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Database\Eloquent\SoftDeletes; // Optional: if you want soft deletes
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Permission\Models\Role;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, 
-        Notifiable, 
-        HasRoles,
-        SoftDeletes; // Optional: add soft deletes if needed
+    use HasFactory, Notifiable, HasRoles, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
-        'name',
-        'username',
+        // Authentication fields
         'email',
+        'password',
+        'email_verified_at',
+        
+        // Profile fields
+        'username',
         'phone',
         'profile_photo',
         'bio',
-        'password',
+        
+        // Polymorphic relationship fields
+        'userable_type',
+        'userable_id',
+        
+        // Account status fields
         'is_active',
         'is_suspended',
         'suspended_until',
         'suspension_reason',
+        
+        // Login tracking
         'last_login_at',
         'last_login_ip',
+        
+        // User preferences and metadata
         'metadata',
         'timezone',
         'language',
         'verification_token',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
-        'verification_token',
+        'verification_token', // Also hide verification token
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
@@ -66,23 +61,28 @@ class User extends Authenticatable
         'is_suspended' => 'boolean',
         'suspended_until' => 'datetime',
         'last_login_at' => 'datetime',
-        'metadata' => 'array',
-        'deleted_at' => 'datetime', // If using soft deletes
+        'metadata' => 'array', // Cast metadata to array
     ];
 
     /**
-     * The accessors to append to the model's array form.
-     *
-     * @var array
+     * The attributes that should have default values.
      */
-    protected $appends = [
-        'profile_photo_url',
-        'account_status',
-        'is_online',
+    protected $attributes = [
+        'is_active' => true,
+        'is_suspended' => false,
+        'language' => 'en',
     ];
 
     /**
-     * Get the user's profile photo URL.
+     * Get the parent userable model (entrepreneur or eso).
+     */
+    public function userable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    /**
+     * Get profile photo URL.
      */
     public function getProfilePhotoUrlAttribute(): string
     {
@@ -90,62 +90,70 @@ class User extends Authenticatable
             return asset('storage/' . $this->profile_photo);
         }
         
-        // Return default avatar based on name initials
-        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
+        return '';
     }
 
     /**
-     * Get the user's account status.
+     * Get user's full name or display name.
      */
-    public function getAccountStatusAttribute(): string
+    public function getDisplayNameAttribute(): string
     {
-        if ($this->is_suspended) {
-            if ($this->suspended_until && $this->suspended_until->isFuture()) {
-                return 'suspended_until_' . $this->suspended_until->format('Y-m-d');
-            } elseif ($this->suspended_until && $this->suspended_until->isPast()) {
-                // Auto-unsuspend if suspension period has passed
-                $this->update(['is_suspended' => false, 'suspended_until' => null]);
-                return 'active';
-            }
-            return 'suspended';
+        if ($this->username) {
+            return $this->username;
         }
         
-        return $this->is_active ? 'active' : 'inactive';
+        if ($this->userable) {
+            if ($this->isEntrepreneur()) {
+                return $this->userable->first_name . ' ' . $this->userable->surname;
+            }
+            if ($this->isESO()) {
+                return $this->userable->organisation_name;
+            }
+        }
+        
+        return explode('@', $this->email)[0];
     }
 
     /**
-     * Check if user is online (last activity within 5 minutes).
+     * Check if user is an entrepreneur.
      */
-    public function getIsOnlineAttribute(): bool
+    public function isEntrepreneur(): bool
     {
-        return $this->last_login_at && $this->last_login_at->gt(now()->subMinutes(5));
+        return $this->userable_type === Entrepreneur::class;
     }
 
     /**
-     * Scope a query to only include active users.
+     * Check if user is an ESO.
      */
-    public function scopeActive($query)
+    public function isESO(): bool
     {
-        return $query->where('is_active', true)
-                     ->where('is_suspended', false);
+        return $this->userable_type === ESO::class;
     }
 
     /**
-     * Scope a query to only include suspended users.
+     * Check if user is an admin or super admin.
      */
-    public function scopeSuspended($query)
+    public function isAdmin(): bool
     {
-        return $query->where('is_suspended', true);
+        return $this->hasRole(['admin', 'super-admin']);
     }
 
     /**
-     * Scope a query to only include users with a specific role.
+     * Check if user is suspended.
      */
-    public function scopeWithRole($query, $role)
+    public function isSuspended(): bool
     {
-        return $query->whereHas('roles', function ($q) use ($role) {
-            $q->where('name', $role);
-        });
+        if (!$this->is_suspended) {
+            return false;
+        }
+        
+        if ($this->suspended_until && $this->suspended_until->isPast()) {
+            // Auto-unsuspend if suspension period has passed
+            $this->update(['is_suspended' => false, 'suspended_until' => null]);
+            return false;
+        }
+        
+        return true;
     }
 
     /**
@@ -184,60 +192,61 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user has specific permission through role.
+     * Scope a query to only include active users.
      */
-    public function hasPermissionToModule(string $module, string $action = 'view'): bool
+    public function scopeActive($query)
     {
-        $permission = $action . ' ' . $module;
-        return $this->can($permission);
+        return $query->where('is_active', true)
+                     ->where('is_suspended', false);
     }
 
     /**
-     * Get all permissions grouped by module for this user.
+     * Scope a query to only include users with a specific role.
      */
-    public function getGroupedPermissions(): array
+    public function scopeWithRole($query, $role)
     {
-        $permissions = $this->getAllPermissions();
-        $grouped = [];
-        
-        foreach ($permissions as $permission) {
-            $parts = explode(' ', $permission->name);
-            $action = $parts[0];
-            $module = implode(' ', array_slice($parts, 1));
-            
-            if (!isset($grouped[$module])) {
-                $grouped[$module] = [];
-            }
-            
-            $grouped[$module][] = $action;
+        if (is_array($role)) {
+            return $query->whereHas('roles', function ($q) use ($role) {
+                $q->whereIn('name', $role);
+            });
         }
         
-        return $grouped;
+        return $query->whereHas('roles', function ($q) use ($role) {
+            $q->where('name', $role);
+        });
+    }
+
+    public static function getCountByRole()
+    {
+        return self::with('roles')
+            ->get()
+            ->flatMap(function ($user) {
+                return $user->roles->pluck('name');
+            })
+            ->countBy();
     }
 
     /**
-     * Get users count by role.
+     * Scope a query to only include suspended users.
      */
-    public static function getCountByRole(): array
+    public function scopeSuspended($query)
     {
-        $roles = \Spatie\Permission\Models\Role::withCount('users')->get();
-        
-        return $roles->pluck('users_count', 'name')->toArray();
+        return $query->where('is_suspended', true);
     }
 
     /**
-     * Route notifications for the mail channel.
+     * Scope a query to only include entrepreneurs.
      */
-    public function routeNotificationForMail(): string
+    public function scopeEntrepreneurs($query)
     {
-        return $this->email;
+        return $query->where('userable_type', Entrepreneur::class);
     }
 
     /**
-     * Route notifications for the SMS channel (if using).
+     * Scope a query to only include ESOs.
      */
-    public function routeNotificationForSms(): ?string
+    public function scopeEsos($query)
     {
-        return $this->phone;
+        return $query->where('userable_type', ESO::class);
     }
 }

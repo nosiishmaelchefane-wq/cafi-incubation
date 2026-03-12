@@ -10,7 +10,7 @@ new class extends Component
     public $message = '';
 
     #[On('notify')] 
-    public function notify($type = 'success', $message = '')
+    public function notify($type = '', $message = '')
     {
         $this->type = $type;
         $this->message = $message;

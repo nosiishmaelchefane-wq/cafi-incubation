@@ -1,4 +1,5 @@
 <?php
+// database/migrations/2014_10_12_000000_create_users_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -13,12 +14,43 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            
+            // Authentication fields
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
+            
+            // Profile fields
+            $table->string('username')->nullable()->unique();
+            $table->string('phone')->nullable();
+            $table->string('profile_photo')->nullable();
+            $table->text('bio')->nullable();
+            
+            // Polymorphic relationship fields
+            $table->string('userable_type')->nullable();
+            $table->unsignedBigInteger('userable_id')->nullable();
+            $table->index(['userable_type', 'userable_id']);
+            
+            // Account status fields
+            $table->boolean('is_active')->default(true);
+            $table->boolean('is_suspended')->default(false);
+            $table->timestamp('suspended_until')->nullable();
+            $table->text('suspension_reason')->nullable();
+            
+            // Login tracking
+            $table->timestamp('last_login_at')->nullable();
+            $table->string('last_login_ip')->nullable();
+            
+            // User preferences and metadata
+            $table->json('metadata')->nullable();
+            $table->string('timezone')->nullable();
+            $table->string('language')->default('en');
+            $table->string('verification_token')->nullable();
+            
+            // Timestamps and soft deletes
             $table->timestamps();
+            $table->softDeletes();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

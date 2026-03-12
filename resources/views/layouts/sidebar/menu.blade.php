@@ -21,7 +21,7 @@
 
             <!-- Dashboard -->
             <li class="nav-item">
-                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 active-nav shadow-sm" data-tooltip="Dashboard" style="background-color: #05923b; color: white;">
+                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 active-nav shadow-sm" data-tooltip="Dashboard">
                     <i class="bi bi-speedometer2 fs-5 nav-icon flex-shrink-0"></i>
                     <span class="fw-medium sidebar-text ms-3">Dashboard</span>
                 </a>
@@ -145,12 +145,15 @@
                 <hr class="section-divider my-1" style="display:none;">
             </li>
 
-            <li class="nav-item">
-                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="All Users" style="color: #333;">
-                    <i class="bi bi-person-lines-fill fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
-                    <span class="fw-medium sidebar-text ms-3" style="color: #142552;">All Users</span>
-                </a>
-            </li>
+            <a href="{{ route('users.index') }}"
+            class="nav-link d-flex align-items-center py-2 px-3 rounded-4 {{ request()->routeIs('users.*') ? 'active-nav' : 'hover-nav' }}"
+            data-tooltip="All Users">
+
+                <i class="bi bi-person-lines-fill fs-5 nav-icon flex-shrink-0"
+                style="color: {{ request()->routeIs('users.*') ? 'white' : '#142552' }}"></i>
+
+                <span class="fw-medium sidebar-text ms-3">All Users</span>
+            </a>
 
             <li class="nav-item">
                 <a href="{{ route('roles.index') }}" 

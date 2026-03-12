@@ -42,6 +42,7 @@
             color: var(--charcoal);
             display: flex;
             min-height: 100vh;
+            overflow-y: auto;
         }
 
         body::after {
@@ -65,6 +66,8 @@
             padding: 3.5rem 4.5rem;
             overflow: hidden;
         }
+
+   
         .bg-blob-1 {
             position: absolute; top: -180px; right: -180px;
             width: 520px; height: 520px; border-radius: 50%;
@@ -176,15 +179,20 @@
         /* ══════════════════════════
            RIGHT PANEL
         ══════════════════════════ */
+
         .form-panel {
             width: 44%;
             background: var(--off-white);
-            display: flex; flex-direction: column;
-            justify-content: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
             padding: 4rem 3.5rem;
             position: relative;
-            overflow: hidden;
+
+
+            overflow-y: auto;
         }
+    
         .form-panel::before {
             content: '';
             position: absolute; top: 0; left: 0; right: 0; height: 4px;
@@ -202,7 +210,6 @@
         /* Both forms sit in the same space; we slide between them */
         .forms-wrapper {
             position: relative;
-            overflow: hidden;
         }
 
         .form-view {

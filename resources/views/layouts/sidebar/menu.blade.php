@@ -21,9 +21,18 @@
 
             <!-- Dashboard -->
             <li class="nav-item">
-                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 active-nav shadow-sm" data-tooltip="Dashboard">
-                    <i class="bi bi-speedometer2 fs-5 nav-icon flex-shrink-0"></i>
-                    <span class="fw-medium sidebar-text ms-3">Dashboard</span>
+                <a href="{{ route('dashboard.index') }}" 
+                class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('dashboard.*') ? 'active-nav' : '' }}" 
+                data-tooltip="Dashboard"
+                style="color: #333; {{ request()->routeIs('dashboard.*') ? 'background-color: #05923b; color: white;' : '' }}">
+                    
+                    <i class="bi bi-speedometer2 fs-5 nav-icon flex-shrink-0"
+                    style="color: {{ request()->routeIs('dashboard.*') ? 'white' : '#142552' }};"></i>
+                    
+                    <span class="fw-medium sidebar-text ms-3"
+                        style="color: {{ request()->routeIs('dashboard.*') ? 'white' : '#142552' }};">
+                        Dashboard
+                    </span>
                 </a>
             </li>
 
@@ -34,9 +43,18 @@
             </li>
 
             <li class="nav-item">
-                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Calls for Applications" style="color: #333;">
-                    <i class="bi bi-megaphone-fill fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
-                    <span class="fw-medium sidebar-text ms-3" style="color: #142552;">Calls for Applications</span>
+                <a href="{{ route('applications.index') }}" 
+                class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('applications.*') ? 'active-nav' : '' }}" 
+                data-tooltip="Calls for Applications"
+                style="color: #333; {{ request()->routeIs('applications.*') ? 'background-color: #05923b; color: white;' : '' }}">
+                    
+                    <i class="bi bi-megaphone-fill fs-5 nav-icon flex-shrink-0"
+                    style="color: {{ request()->routeIs('applications.*') ? 'white' : '#142552' }};"></i>
+                    
+                    <span class="fw-medium sidebar-text ms-3"
+                        style="color: {{ request()->routeIs('applications.*') ? 'white' : '#142552' }};">
+                        Calls for Applications
+                    </span>
                 </a>
             </li>
 
@@ -48,16 +66,33 @@
             </li>
 
             <li class="nav-item">
-                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Screening &amp; Eligibility" style="color: #333;">
-                    <i class="bi bi-funnel-fill fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
-                    <span class="fw-medium sidebar-text ms-3" style="color: #142552;">Screening &amp; Eligibility</span>
+                <a href="{{ route('screening.index') }}" 
+                class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('screening.*') ? 'active-nav' : '' }}" 
+                data-tooltip="Screening &amp; Eligibility"
+                style="color: #333; {{ request()->routeIs('screening.*') ? 'background-color: #05923b; color: white;' : '' }}">
+                    
+                    <i class="bi bi-funnel-fill fs-5 nav-icon flex-shrink-0"
+                    style="color: {{ request()->routeIs('screening.*') ? 'white' : '#142552' }};"></i>
+                    
+                    <span class="fw-medium sidebar-text ms-3"
+                        style="color: {{ request()->routeIs('screening.*') ? 'white' : '#142552' }};">
+                        Screening &amp; Eligibility
+                    </span>
                 </a>
             </li>
-
             <li class="nav-item">
-                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Evaluation &amp; Scoring" style="color: #333;">
-                    <i class="bi bi-clipboard2-data-fill fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
-                    <span class="fw-medium sidebar-text ms-3" style="color: #142552;">Evaluation &amp; Scoring</span>
+                <a href="{{ route('evaluation.index') }}" 
+                class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('evaluation.*') ? 'active-nav' : '' }}" 
+                data-tooltip="Evaluation &amp; Scoring"
+                style="color: #333; {{ request()->routeIs('evaluation.*') ? 'background-color: #05923b; color: white;' : '' }}">
+                    
+                    <i class="bi bi-clipboard2-data-fill fs-5 nav-icon flex-shrink-0"
+                    style="color: {{ request()->routeIs('evaluation.*') ? 'white' : '#142552' }};"></i>
+                    
+                    <span class="fw-medium sidebar-text ms-3"
+                        style="color: {{ request()->routeIs('evaluation.*') ? 'white' : '#142552' }};">
+                        Evaluation &amp; Scoring
+                    </span>
                 </a>
             </li>
 

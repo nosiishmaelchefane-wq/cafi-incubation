@@ -3,6 +3,10 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Roles\UserRolesController;
 use App\Http\Controllers\UserManagement\UserManagementController;
+use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\Applications\ApplicationsController;
+use App\Http\Controllers\Screening\ScreeningController;
+use App\Http\Controllers\Evaluation\EvaluationController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +25,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/roles', [UserRolesController::class, 'index'])->name('roles.index');
     Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
     Route::get('/user', [UserManagementController::class, 'show'])->name('users.show');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('/applications', [ApplicationsController::class, 'index'])->name('applications.index');
+    Route::get('/screening', [ScreeningController::class, 'index'])->name('screening.index');
+    Route::get('/evaluation', [EvaluationController::class, 'index'])->name('evaluation.index');
 });
 
 require __DIR__.'/auth.php';

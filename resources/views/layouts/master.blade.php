@@ -78,6 +78,8 @@
     <!-- DataTables JS -->
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+       {{-- ApexCharts CDN --}}
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
  
     @livewireScriptConfig
     @livewireScripts

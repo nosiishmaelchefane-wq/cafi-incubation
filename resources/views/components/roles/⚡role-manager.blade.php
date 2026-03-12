@@ -24,10 +24,12 @@ new class extends Component
         $this->loadStatistics();
     }
 
-      #[On('roleCreated')] 
+    #[On('roleCreated')] 
     public function roleCreated()
     {
+        dd("created");
         $this->loadRoles();
+        $this->loadStatistics();
     }
 
     public function loadRoles()
@@ -297,14 +299,21 @@ new class extends Component
         <livewire:roles.manage-role />
         <livewire:notify />
     </div>
-    @push('scripts')
-    <script>
-        Livewire.on('delayedRoleCreated', () => {
-            console.log ("yes");
-            setTimeout(() => {
-                Livewire.dispatch('roleCreated');
-            }, 1500);
-        });
-    </script>
-    @endpush
+   @push('scripts')
+<script>
+document.addEventListener('livewire:init', () => {
+
+    window.addEventListener('delayedRoleCreated', () => {
+        console.log("yes");
+
+        setTimeout(() => {
+            Livewire.dispatch('roleCreated');
+        }, 1500);
+
+    });
+
+});
+</script>
+@endpush
+  
 </div>

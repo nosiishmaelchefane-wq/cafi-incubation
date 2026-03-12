@@ -35,6 +35,8 @@ new class extends Component
         $this->show = false;
         $this->resetValidation();
     }
+
+
     public function save()
     {
         $this->validate([
@@ -56,10 +58,10 @@ new class extends Component
             }
         }
 
-
-        $this->dispatch('notify', type:'success', message:'Role created successfully!');
+       $this->dispatch('notify', type:'success', message:'Role created successfully!');
         $this->dispatch('delayedRoleCreated');
         $this->close();
+
     }
 };
 ?>
@@ -133,8 +135,5 @@ new class extends Component
             </div>
         </div>
     </div>
-@push('scripts')
-
-@endpush
     
 </div>

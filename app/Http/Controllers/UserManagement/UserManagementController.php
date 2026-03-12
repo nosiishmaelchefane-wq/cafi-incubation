@@ -11,4 +11,8 @@ class UserManagementController extends Controller
     {
         return view ('user-management.users.index');
     }
+
+    public function show(){
+        return view('user-management.users.show');
+    }
 }

@@ -137,9 +137,11 @@ new class extends Component {
     {
         $user = User::findOrFail($userId);
         
-        // Assign role if selected
+        // Get the role before assigning
+        $assignedRole = null;
         if (isset($this->pendingRoleAssignment[$userId])) {
-            $user->assignRole($this->pendingRoleAssignment[$userId]);
+            $assignedRole = $this->pendingRoleAssignment[$userId];
+            $user->assignRole($assignedRole);
         }
         
         // Mark email as verified and activate
@@ -147,11 +149,14 @@ new class extends Component {
         $user->is_active = true;
         $user->save();
 
+        // Send approval email
+        \Mail::to($user->email)->send(new \App\Mail\UserApproved($user, $assignedRole));
+
         // Clear the pending assignment
         unset($this->pendingRoleAssignment[$userId]);
         $this->dispatch('userApproved');
 
-        $this->dispatch('notify', type: 'success', message: 'User Approved successfully!');
+        $this->dispatch('notify', type: 'success', message: 'User Approved successfully! A confirmation email has been sent to the user.');
     }
 
     /**
@@ -161,12 +166,14 @@ new class extends Component {
     {
         $user = User::findOrFail($userId);
         
+        // Send rejection email before deleting
+        \Mail::to($user->email)->send(new \App\Mail\UserRejected($user));
+        
         // Delete the user (or mark as rejected)
         $user->delete();
         $this->dispatch('userRejected');
-        $this->dispatch('notify', type: 'warning', message: 'User rejected!');
+        $this->dispatch('notify', type: 'warning', message: 'User rejected! A notification email has been sent to the user.');
     }
-
  
 
     /**
@@ -337,7 +344,7 @@ new class extends Component {
                                 <label class="form-label small fw-semibold mb-1">Assign Role</label>
                                 <select class="form-select form-select-sm" 
                                         wire:model="pendingRoleAssignment.{{ $user->id }}">
-                                    <option value="">Select a role…</option>
+                                    <option value="{{ $role->name }}">{{ $role->name }}</option>
                                     @foreach($roles as $role)
                                         <option value="{{ $role->name }}">{{ $role->name }}</option>
                                     @endforeach

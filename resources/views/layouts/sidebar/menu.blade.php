@@ -7,10 +7,10 @@
 
     <!-- Header -->
     <a href="#" class="d-flex align-items-center mb-3 text-decoration-none sidebar-brand">
-    <img src="{{ asset('/images/logo.png') }}" 
-         alt="LEHSFF" 
-         class="img-fluid" 
-         style="max-height: 45px; width: auto; object-fit: contain;">
+        <img src="{{ asset('/images/logo.png') }}" 
+             alt="LEHSFF" 
+             class="img-fluid" 
+             style="max-height: 45px; width: auto; object-fit: contain;">
     </a>
 
     <hr class="my-2" style="border-color: #dee2e6; opacity: 0.5;">
@@ -19,7 +19,8 @@
     <div class="nav-scrollable-container" style="flex: 1 1 auto; min-height: 0; position: relative;">
         <ul class="nav nav-pills flex-column gap-1" id="sidebarNav" style="margin: 0; padding: 0; list-style: none;">
 
-            <!-- Dashboard -->
+            <!-- Dashboard - Visible to all authenticated users -->
+            @can('view Dashboard')
             <li class="nav-item">
                 <a href="{{ route('dashboard.index') }}" 
                 class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('dashboard.*') ? 'active-nav' : '' }}" 
@@ -35,13 +36,18 @@
                     </span>
                 </a>
             </li>
+            @endcan
 
             <!-- PRE-INCUBATION -->
+            @canany(['view Calls for Applications', 'view Applications', 'view Screening & Eligibility', 'view Evaluation & Scoring'])
             <li class="nav-item mt-2">
                 <small class="section-label px-3 sidebar-text" style="color: #142552; font-weight: 700;">Pre-Incubation</small>
                 <hr class="section-divider my-1" style="display:none;">
             </li>
+            @endcanany
 
+            <!-- Calls for Applications - Visible to Entrepreneur and Super Admin -->
+            @can('view Calls for Applications')
             <li class="nav-item">
                 <a href="{{ route('applications.index') }}" 
                 class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('applications.*') ? 'active-nav' : '' }}" 
@@ -57,14 +63,23 @@
                     </span>
                 </a>
             </li>
+            @endcan
 
+            <!-- Applications - Visible to Entrepreneur and Super Admin -->
+            @can('view Applications')
             <li class="nav-item">
-                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Applications" style="color: #333;">
+                <a href="#" 
+                class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" 
+                data-tooltip="Applications" 
+                style="color: #333;">
                     <i class="bi bi-file-earmark-text-fill fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
                     <span class="fw-medium sidebar-text ms-3" style="color: #142552;">Applications</span>
                 </a>
             </li>
+            @endcan
 
+            <!-- Screening & Eligibility - Admin only -->
+            @can('view Screening & Eligibility')
             <li class="nav-item">
                 <a href="{{ route('screening.index') }}" 
                 class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('screening.*') ? 'active-nav' : '' }}" 
@@ -80,6 +95,10 @@
                     </span>
                 </a>
             </li>
+            @endcan
+
+            <!-- Evaluation & Scoring - Admin only -->
+            @can('view Evaluation & Scoring')
             <li class="nav-item">
                 <a href="{{ route('evaluation.index') }}" 
                 class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('evaluation.*') ? 'active-nav' : '' }}" 
@@ -95,7 +114,10 @@
                     </span>
                 </a>
             </li>
+            @endcan
 
+            <!-- Shortlisting & Pitches - Placeholder (no route yet) -->
+            @can('view Cohort Management')
             <li class="nav-item">
                 <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Shortlisting &amp; Pitches" style="color: #333;">
                     <i class="bi bi-list-check fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
@@ -103,6 +125,7 @@
                 </a>
             </li>
 
+            <!-- Cohort Management - Placeholder (no route yet) -->
             <li class="nav-item">
                 <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Cohort Management" style="color: #333;">
                     <i class="bi bi-people-fill fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
@@ -110,13 +133,17 @@
                     <span class="badge ms-2 sidebar-badge flex-shrink-0" style="background-color: #05923b; color: white;">ESO</span>
                 </a>
             </li>
+            @endcan
 
-            <!-- ACTIVE INCUBATION -->
+            <!-- ACTIVE INCUBATION - Admin only (placeholders) -->
+            @canany(['view Enterprise Reports', 'view ESO Reports'])
             <li class="nav-item mt-2">
                 <small class="section-label px-3 sidebar-text" style="color: #142552; font-weight: 700;">Active Incubation</small>
                 <hr class="section-divider my-1" style="display:none;">
             </li>
+            @endcanany
 
+            @can('view Enterprise Reports')
             <li class="nav-item">
                 <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Enterprises" style="color: #333;">
                     <i class="bi bi-shop-window fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
@@ -137,7 +164,9 @@
                     <span class="fw-medium sidebar-text ms-3" style="color: #142552;">Enterprise Reports</span>
                 </a>
             </li>
+            @endcan
 
+            @can('view ESO Reports')
             <li class="nav-item">
                 <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="ESO Reports" style="color: #333;">
                     <i class="bi bi-building fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
@@ -152,8 +181,10 @@
                     <span class="badge ms-2 sidebar-badge flex-shrink-0" style="background-color: #142552; color: white;">Admin</span>
                 </a>
             </li>
+            @endcan
 
-            <!-- POST INCUBATION -->
+            <!-- POST INCUBATION - Admin only (placeholders) -->
+            @can('view Analytics & Reporting')
             <li class="nav-item mt-2">
                 <small class="section-label px-3 sidebar-text" style="color: #142552; font-weight: 700;">Post-Incubation</small>
                 <hr class="section-divider my-1" style="display:none;">
@@ -173,8 +204,10 @@
                     <span class="badge ms-2 sidebar-badge flex-shrink-0" style="background-color: #142552; color: white;">Admin</span>
                 </a>
             </li>
+            @endcan
 
-            <!-- USER MANAGEMENT -->
+            <!-- USER MANAGEMENT - Admin only -->
+            @can('view User Management')
             <li class="nav-item mt-2">
                 <small class="section-label px-3 sidebar-text" style="color: #142552; font-weight: 700;">User Management</small>
                 <hr class="section-divider my-1" style="display:none;">
@@ -211,6 +244,7 @@
                     </span>
                 </a>
             </li>
+            @endcan
 
         </ul>
     </div>
@@ -222,16 +256,18 @@
         <!-- User Profile Section -->
         <div class="d-flex align-items-center p-2 rounded-3 user-profile-toggle" style="background-color: #f0f4f9;">
             <div class="position-relative flex-shrink-0">
-                <img src="{{ asset('assets/images/icon.png') }}"
-                    alt="Profile"
-                    width="40"
-                    height="40"
-                    class="rounded-circle border border-3" style="border-color: #142552 !important;">
-                <span class="position-absolute bottom-0 end-0 rounded-circle" style="width:12px;height:12px; background-color: #05923b; border: 2px solid white;"></span>
+                <div class="rounded-circle border border-3 d-flex align-items-center justify-content-center"
+                    style="width:40px;height:40px; border-color: #142552 !important;">
+                    
+                    <i class="bi bi-person-fill" style="font-size:20px; color:#142552;"></i>
+                </div>
+
+                <span class="position-absolute bottom-0 end-0 rounded-circle"
+                    style="width:12px;height:12px; background-color: #05923b; border: 2px solid white;"></span>
             </div>
             <div class="d-flex flex-column ms-3 sidebar-text overflow-hidden">
-                <strong class="text-truncate" style="color: #142552;">John Doe</strong>
-                <small class="text-muted text-capitalize text-truncate">Administrator</small>
+                <strong class="text-truncate" style="color: #142552;">{{ Auth::user()->username ?? 'User' }}</strong>
+                <small class="text-muted text-capitalize text-truncate">{{ Auth::user()->roles->first()->name ?? 'User' }}</small>
             </div>
         </div>
 
@@ -246,7 +282,7 @@
             </a>
         </div>
 
-        <form id="logout-form" action="" method="POST" class="d-none">
+        <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
             @csrf
         </form>
     </div>

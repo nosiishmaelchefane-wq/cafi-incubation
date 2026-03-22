@@ -9,6 +9,7 @@ use Livewire\Attributes\Rule;
 use Livewire\Attributes\Computed;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 new class extends Component {
     use WithFileUploads;
@@ -160,6 +161,7 @@ new class extends Component {
     public function register()
     {
         $this->validate();
+        $username = $this->first_name . ' ' . $this->surname;
         
         try {
             // Handle file uploads
@@ -196,6 +198,7 @@ new class extends Component {
                 'email' => $this->email,
                 'password' => Hash::make($this->password),
                 'profile_photo' => $profileImagePath,
+                'username' => $username,
                 'userable_type' => Entrepreneur::class,
                 'userable_id' => $entrepreneur->id,
                 'is_active' => false,

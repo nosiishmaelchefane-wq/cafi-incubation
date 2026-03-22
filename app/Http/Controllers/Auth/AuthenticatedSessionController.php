@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 use Illuminate\View\View;
 use Illuminate\Validation\ValidationException;
 
@@ -26,7 +27,7 @@ class AuthenticatedSessionController extends Controller
     public function store(LoginRequest $request): RedirectResponse
     {
         // First, check if user exists
-        $user = \App\Models\User::where('email', $request->email)->first();
+        $user = User::where('email', $request->email)->first();
 
         if (!$user) {
             throw ValidationException::withMessages([
@@ -37,7 +38,7 @@ class AuthenticatedSessionController extends Controller
         // Check if account is active
         if (!$user->is_active) {
             throw ValidationException::withMessages([
-                'email' => 'Your account is inactive. Please contact support.',
+                'email' => 'Your account is pending approval. You will receive an email once your account is activated. Please contact support if you have questions.',
             ]);
         }
 
@@ -47,7 +48,7 @@ class AuthenticatedSessionController extends Controller
             if ($user->suspended_until && $user->suspended_until->isFuture()) {
                 $suspendedUntil = $user->suspended_until->format('F j, Y');
                 throw ValidationException::withMessages([
-                    'email' => "Your account is suspended until {$suspendedUntil}.",
+                    'email' => "Your account is suspended until {$suspendedUntil}. Reason: {$user->suspension_reason}",
                 ]);
             } 
             // Auto-unsuspend if suspension period has passed
@@ -61,7 +62,7 @@ class AuthenticatedSessionController extends Controller
             // Indefinite suspension
             else {
                 throw ValidationException::withMessages([
-                    'email' => 'Your account is suspended. Please contact support.',
+                    'email' => 'Your account has been suspended. Please contact support for more information.',
                 ]);
             }
         }
@@ -78,7 +79,31 @@ class AuthenticatedSessionController extends Controller
             'last_login_ip' => $request->ip(),
         ]);
 
-        // Redirect to dashboard
+        // Redirect based on user's permissions
+        return $this->redirectBasedOnPermissions(Auth::user());
+    }
+
+    /**
+     * Redirect users based on their permissions
+     */
+    protected function redirectBasedOnPermissions($user): RedirectResponse
+    {
+        // Define permission-based redirects
+        $redirectRoutes = [
+            'view User Management' => route('users.index', absolute: false),
+            'view Calls for Applications' => route('applications.index', absolute: false),
+            'view Screening & Eligibility' => route('screening.index', absolute: false),
+            'view Evaluation & Scoring' => route('evaluation.index', absolute: false),
+        ];
+
+        // Check each permission and redirect to the appropriate page
+        foreach ($redirectRoutes as $permission => $route) {
+            if ($user->can($permission)) {
+                return redirect()->intended($route);
+            }
+        }
+
+        // Default redirect to dashboard
         return redirect()->intended(route('dashboard.index', absolute: false));
     }
 

@@ -206,7 +206,10 @@ new class extends Component {
             
             $user->assignRole('Applicant');
             
-            $this->dispatch('notify', type: 'success', message: 'Your application has been submitted successfully! Your account will be reviewed by an administrator.');
+            // Send welcome email
+            \Mail::to($user->email)->send(new \App\Mail\WelcomeApplicant($user, $username));
+            
+            $this->dispatch('notify', type: 'success', message: 'Your application has been submitted successfully! A confirmation email has been sent to your email address. Your account will be reviewed by an administrator.');
             return $this->redirect('/', navigate: true);
             
         } catch (\Exception $e) {

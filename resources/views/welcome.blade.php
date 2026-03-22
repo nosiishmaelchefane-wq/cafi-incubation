@@ -114,7 +114,7 @@
         .panel-headline {
             font-family: var(--display);
             font-size: clamp(2.7rem, 4.2vw, 4.1rem);
-            font-weight: 800; line-height: 1.04;
+            font-weight: 700; line-height: 1.04;
             color: var(--navy); letter-spacing: -.025em;
             margin-bottom: 1.5rem;
             animation: fadeUp .6s ease .2s both;
@@ -461,25 +461,39 @@
         <div class="bg-grid"></div>
 
         <div class="panel-brand">
-            <img src="{{ asset('images/logo.png') }}" alt="LEHSFF Logo" class="brand-logo">
+            <img src="{{ asset('images/logo.png') }}" alt="Incubation Hub Logo" class="brand-logo">
         </div>
 
         <div class="panel-hero">
             <div class="panel-eyebrow">
                 <span class="ey-dot"></span>
-                Entrepreneurship Hub &amp; Seed Financing Facility
+                Incubation Program
             </div>
             <h1 class="panel-headline">
-                Empowering<br>
-                <span class="hl-green">Lesotho's</span><br>
-                Entrepreneurs
+                Where Ideas<br>
+                <span class="hl-green">Grow Into</span><br>
+                Enterprises
             </h1>
             <p class="panel-desc">
-                A centralised platform connecting entrepreneurs, mentors, investors, and enterprise support organisations to strengthen Lesotho's entrepreneurial ecosystem.
+                Join Lesotho's premier incubation program. Access mentorship, funding connections, and a community of innovators building the future of Basotho business.
             </p>
             <div class="panel-features">
-                <span class="feat-pill"><span class="pill-dot"></span>Incubation Management</span>
-                <span class="feat-pill"><span class="pill-dot"></span>ESO Reporting</span>
+                <span class="feat-pill"><span class="pill-dot"></span>1-on-1 Mentorship</span>
+                <span class="feat-pill"><span class="pill-dot"></span>Workshop Series</span>
+                <span class="feat-pill"><span class="pill-dot"></span>Calls for Application</span>
+                <span class="feat-pill"><span class="pill-dot"></span>Reporting</span>
+            </div>
+        </div>
+
+        <!-- Simple Stats -->
+        <div class="panel-stats">
+            <div class="stat">
+                <div class="stat-num">40+</div>
+                <div class="stat-label">Graduated Startups</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">M5M+</div>
+                <div class="stat-label">Funding Raised</div>
             </div>
         </div>
     </div>
@@ -542,7 +556,6 @@
                     <div class="role-chips">
                         <span class="role-chip">Entrepreneurs</span>
                         <span class="role-chip">Mentors</span>
-                        <span class="role-chip">Investors</span>
                         <span class="role-chip">ESOs</span>
                         <span class="role-chip">CAFI Admins</span>
                     </div>

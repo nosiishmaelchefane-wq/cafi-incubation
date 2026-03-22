@@ -1,51 +1,47 @@
 <?php
-// app/Models/Entrepreneur.php
+// database/migrations/2024_01_01_000001_create_entrepreneurs_table.php
 
-namespace App\Models;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
-
-class Entrepreneur extends Model
+return new class extends Migration
 {
-    protected $table = 'entrepreneurs';
-
-    protected $fillable = [
-        'first_name',
-        'surname',
-        'gender',
-        'date_of_birth',
-        'country',
-        'area_of_operation',
-        'industry_or_interest',
-        'stage',
-        'years_of_operation',
-        'short_bio',
-        'organization_name',
-        'tax_clearance_path',
-        'traders_license_path',
-        'metadata',
-    ];
-
-    protected $casts = [
-        'date_of_birth' => 'date',
-        'years_of_operation' => 'integer',
-        'metadata' => 'array',
-    ];
-
-    /**
-     * Get the user that owns this entrepreneur profile.
-     */
-    public function user(): MorphOne
+    public function up(): void
     {
-        return $this->morphOne(User::class, 'userable');
+        Schema::create('entrepreneurs', function (Blueprint $table) {
+            $table->id();
+            
+            // Personal Information
+            $table->string('first_name');
+            $table->string('surname');
+            $table->enum('gender', ['male', 'female', 'other'])->nullable();
+            $table->date('date_of_birth')->nullable();
+            
+            // Location
+            $table->string('country')->default('Lesotho');
+            $table->string('area_of_operation')->nullable();
+            
+            // Business Information
+            $table->string('organization_name')->nullable();
+            $table->string('industry_or_interest')->nullable();
+            $table->integer('years_of_operation')->nullable();
+            $table->text('short_bio')->nullable();
+            
+            // Documents
+            $table->string('tax_clearance_path')->nullable();
+            $table->string('traders_license_path')->nullable();
+            
+            // Additional Data
+            $table->json('metadata')->nullable();
+            
+            $table->timestamps();
+            $table->softDeletes();
+        });
     }
 
-    /**
-     * Get full name attribute.
-     */
-    public function getFullNameAttribute(): string
+    public function down(): void
     {
-        return $this->first_name . ' ' . $this->surname;
+        Schema::dropIfExists('entrepreneurs');
     }
-}
+};

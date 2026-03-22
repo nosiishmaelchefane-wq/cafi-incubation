@@ -1,5 +1,6 @@
 <?php
 
+
 use App\Models\User;
 use App\Models\Entrepreneur;
 use Livewire\Component;
@@ -46,9 +47,6 @@ new class extends Component {
     #[Rule('required|string')]
     public string $industry_or_interest = '';
     
-    #[Rule('required|in:idea,non_registered,formally_registered,fully_operational')]
-    public string $stage = '';
-    
     #[Rule('nullable|integer|min:0|max:100')]
     public ?int $years_of_operation = null;
     
@@ -92,14 +90,6 @@ new class extends Component {
         'Food & Beverage',
         'Consulting',
         'Other'
-    ];
-    
-    // Stage options
-    public array $stages = [
-        'idea' => 'Idea Stage',
-        'non_registered' => 'Non-Registered Startup',
-        'formally_registered' => 'Formally Registered Startup',
-        'fully_operational' => 'Fully Operational and Stable'
     ];
     
     // Country options
@@ -177,11 +167,11 @@ new class extends Component {
                 ? $this->profile_image->store('profile-images', 'public') 
                 : null;
                 
-            $taxClearancePath = $this->tax_clearance && in_array($this->stage, ['formally_registered', 'fully_operational'])
+            $taxClearancePath = $this->tax_clearance
                 ? $this->tax_clearance->store('documents/tax-clearance', 'public')
                 : null;
                 
-            $tradersLicensePath = $this->traders_license && in_array($this->stage, ['formally_registered', 'fully_operational'])
+            $tradersLicensePath = $this->traders_license
                 ? $this->traders_license->store('documents/traders-license', 'public')
                 : null;
             
@@ -194,7 +184,6 @@ new class extends Component {
                 'country' => $this->country,
                 'area_of_operation' => $this->area_of_operation,
                 'industry_or_interest' => $this->industry_or_interest,
-                'stage' => $this->stage,
                 'years_of_operation' => $this->years_of_operation,
                 'short_bio' => $this->short_bio,
                 'organization_name' => $this->organization_name,
@@ -212,8 +201,9 @@ new class extends Component {
                 'is_active' => false,
             ]);
             
-            // Assign role
-            $user->assignRole('entrepreneur');
+            $user->assignRole('applicant');
+            
+            $this->dispatch('notify', type: 'success', message: 'Your application has been submitted successfully! Your account will be reviewed by an administrator.');
             return $this->redirect('/', navigate: true);
             
         } catch (\Exception $e) {
@@ -257,7 +247,6 @@ new class extends Component {
                 'country' => 'required|string',
                 'area_of_operation' => 'required|string|max:255',
                 'industry_or_interest' => 'required|string',
-                'stage' => 'required|in:idea,non_registered,formally_registered,fully_operational',
                 'years_of_operation' => 'nullable|integer|min:0|max:100',
             ],
             4 => [
@@ -277,13 +266,6 @@ new class extends Component {
         
         if (isset($stepRules[$propertyName])) {
             $this->validateOnly($propertyName);
-        }
-        
-        // Auto-fill years of operation if stage changes
-        if ($propertyName === 'stage') {
-            if (in_array($this->stage, ['idea', 'non_registered'])) {
-                $this->years_of_operation = 0;
-            }
         }
     }
 
@@ -461,22 +443,9 @@ new class extends Component {
             </div>
             
             <div class="field">
-                <label for="stage">Stage of Entrepreneurship <span style="color: var(--green);">*</span></label>
-                <select wire:model="stage" id="stage">
-                    <option value="">Select Stage</option>
-                    @foreach($this->stages as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-                @error('stage') <span class="error">{{ $message }}</span> @enderror
-            </div>
-            
-            <div x-show="$wire.stage === 'formally_registered' || $wire.stage === 'fully_operational'" x-cloak x-transition:enter.duration.300ms>
-                <div class="field">
-                    <label for="years_of_operation">Years of Operation</label>
-                    <input wire:model="years_of_operation" id="years_of_operation" type="number" min="0" max="100" step="1" placeholder="e.g., 5">
-                    @error('years_of_operation') <span class="error">{{ $message }}</span> @enderror
-                </div>
+                <label for="years_of_operation">Years of Operation</label>
+                <input wire:model="years_of_operation" id="years_of_operation" type="number" min="0" max="100" step="1" placeholder="e.g., 5">
+                @error('years_of_operation') <span class="error">{{ $message }}</span> @enderror
             </div>
         </div>
 
@@ -495,36 +464,34 @@ new class extends Component {
                 @error('short_bio') <span class="error">{{ $message }}</span> @enderror
             </div>
             
-            {{-- Document uploads - only show for registered/operational stages --}}
-            <div x-show="$wire.stage === 'formally_registered' || $wire.stage === 'fully_operational'" x-cloak x-transition:enter.duration.300ms>
-                <div class="documents-section" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-                    <h4 style="font-family: var(--display); font-size: 0.9rem; margin-bottom: 1rem; color: var(--navy);">Required Documents</h4>
+            {{-- Document uploads - always visible --}}
+            <div class="documents-section" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                <h4 style="font-family: var(--display); font-size: 0.9rem; margin-bottom: 1rem; color: var(--navy);">Required Documents</h4>
+                
+                <div class="field">
+                    <label for="tax_clearance">Tax Clearance Certificate</label>
+                    <input wire:model="tax_clearance" id="tax_clearance" type="file" accept=".pdf,.jpg,.jpeg,.png" style="padding: 0.5rem 0;">
+                    <small style="color: var(--smoke); font-size: 0.65rem;">Accepted: PDF, JPG, PNG (Max 5MB)</small>
+                    @error('tax_clearance') <span class="error">{{ $message }}</span> @enderror
                     
-                    <div class="field">
-                        <label for="tax_clearance">Tax Clearance Certificate</label>
-                        <input wire:model="tax_clearance" id="tax_clearance" type="file" accept=".pdf,.jpg,.jpeg,.png" style="padding: 0.5rem 0;">
-                        <small style="color: var(--smoke); font-size: 0.65rem;">Accepted: PDF, JPG, PNG (Max 5MB)</small>
-                        @error('tax_clearance') <span class="error">{{ $message }}</span> @enderror
-                        
-                        @if ($tax_clearance)
-                            <div class="file-name" style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--green);">
-                                📎 {{ $tax_clearance->getClientOriginalName() }}
-                            </div>
-                        @endif
-                    </div>
+                    @if ($tax_clearance)
+                        <div class="file-name" style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--green);">
+                            📎 {{ $tax_clearance->getClientOriginalName() }}
+                        </div>
+                    @endif
+                </div>
+                
+                <div class="field">
+                    <label for="traders_license">Trader's License</label>
+                    <input wire:model="traders_license" id="traders_license" type="file" accept=".pdf,.jpg,.jpeg,.png" style="padding: 0.5rem 0;">
+                    <small style="color: var(--smoke); font-size: 0.65rem;">Accepted: PDF, JPG, PNG (Max 5MB)</small>
+                    @error('traders_license') <span class="error">{{ $message }}</span> @enderror
                     
-                    <div class="field">
-                        <label for="traders_license">Trader's License</label>
-                        <input wire:model="traders_license" id="traders_license" type="file" accept=".pdf,.jpg,.jpeg,.png" style="padding: 0.5rem 0;">
-                        <small style="color: var(--smoke); font-size: 0.65rem;">Accepted: PDF, JPG, PNG (Max 5MB)</small>
-                        @error('traders_license') <span class="error">{{ $message }}</span> @enderror
-                        
-                        @if ($traders_license)
-                            <div class="file-name" style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--green);">
-                                📎 {{ $traders_license->getClientOriginalName() }}
-                            </div>
-                        @endif
-                    </div>
+                    @if ($traders_license)
+                        <div class="file-name" style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--green);">
+                            📎 {{ $traders_license->getClientOriginalName() }}
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

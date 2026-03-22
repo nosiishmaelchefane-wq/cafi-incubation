@@ -1,4 +1,5 @@
 <?php
+
 // database/migrations/2024_01_01_000001_create_entrepreneurs_table.php
 
 use Illuminate\Database\Migrations\Migration;
@@ -25,7 +26,6 @@ return new class extends Migration
             // Business Information
             $table->string('organization_name')->nullable();
             $table->string('industry_or_interest')->nullable();
-            $table->enum('stage', ['idea', 'non_registered', 'formally_registered', 'fully_operational'])->nullable();
             $table->integer('years_of_operation')->nullable();
             $table->text('short_bio')->nullable();
             

@@ -18,7 +18,6 @@ class Entrepreneur extends Model
         'country',
         'area_of_operation',
         'industry_or_interest',
-        'stage',
         'years_of_operation',
         'short_bio',
         'organization_name',
@@ -49,3 +48,4 @@ class Entrepreneur extends Model
         return $this->first_name . ' ' . $this->surname;
     }
 }
+

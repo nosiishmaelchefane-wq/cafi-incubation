@@ -201,7 +201,7 @@ new class extends Component {
                 'is_active' => false,
             ]);
             
-            $user->assignRole('applicant');
+            $user->assignRole('Applicant');
             
             $this->dispatch('notify', type: 'success', message: 'Your application has been submitted successfully! Your account will be reviewed by an administrator.');
             return $this->redirect('/', navigate: true);

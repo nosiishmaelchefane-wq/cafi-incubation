@@ -378,19 +378,4 @@ new class extends Component {
         </div>
     </div>
     @endif
-
-    <!-- Notification area -->
-    <div x-data="{ show: false, message: '', type: 'success' }" 
-         x-on:notify.window="show = true; message = $event.detail.message; type = $event.detail.type; setTimeout(() => show = false, 3000)"
-         x-show="show"
-         x-transition
-         class="position-fixed bottom-0 end-0 p-3"
-         style="z-index: 9999;">
-        <div class="alert" :class="{
-            'alert-success': type === 'success',
-            'alert-danger': type === 'error'
-        }" role="alert">
-            <span x-text="message"></span>
-        </div>
-    </div>
 </div>

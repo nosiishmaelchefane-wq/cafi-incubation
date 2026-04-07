@@ -91,7 +91,7 @@ class AuthenticatedSessionController extends Controller
         // Define permission-based redirects
         $redirectRoutes = [
             'view User Management' => route('users.index', absolute: false),
-            'view Calls for Applications' => route('applications.index', absolute: false),
+            'view Calls for Applications' => route('calls.index', absolute: false),
             'view Screening & Eligibility' => route('screening.index', absolute: false),
             'view Evaluation & Scoring' => route('evaluation.index', absolute: false),
         ];

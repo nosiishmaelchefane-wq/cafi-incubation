@@ -26,7 +26,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
     Route::get('/user', [UserManagementController::class, 'show'])->name('users.show');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
-    Route::get('/applications', [ApplicationsController::class, 'index'])->name('applications.index');
+    Route::get('/calls', [ApplicationsController::class, 'index'])->name('calls.index');
+    Route::get('/call/{id}', [ApplicationsController::class, 'show'])->name('call.show');
     Route::get('/screening', [ScreeningController::class, 'index'])->name('screening.index');
     Route::get('/evaluation', [EvaluationController::class, 'index'])->name('evaluation.index');
 });

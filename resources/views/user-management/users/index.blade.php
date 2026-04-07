@@ -11,6 +11,7 @@
 
     <!-- ── Main Card ── -->
     <livewire:user-management.manage-users />
+    <livewire:notify />
     <!-- /card -->
 
 

@@ -49,16 +49,16 @@
             <!-- Calls for Applications - Visible to Entrepreneur and Super Admin -->
             @can('view Calls for Applications')
             <li class="nav-item">
-                <a href="{{ route('applications.index') }}" 
-                class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('applications.*') ? 'active-nav' : '' }}" 
+                <a href="{{ route('calls.index') }}" 
+                class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('calls.*') ? 'active-nav' : '' }}" 
                 data-tooltip="Calls for Applications"
-                style="color: #333; {{ request()->routeIs('applications.*') ? 'background-color: #05923b; color: white;' : '' }}">
+                style="color: #333; {{ request()->routeIs('calls.*') ? 'background-color: #05923b; color: white;' : '' }}">
                     
                     <i class="bi bi-megaphone-fill fs-5 nav-icon flex-shrink-0"
-                    style="color: {{ request()->routeIs('applications.*') ? 'white' : '#142552' }};"></i>
+                    style="color: {{ request()->routeIs('calls.*') ? 'white' : '#142552' }};"></i>
                     
                     <span class="fw-medium sidebar-text ms-3"
-                        style="color: {{ request()->routeIs('applications.*') ? 'white' : '#142552' }};">
+                        style="color: {{ request()->routeIs('calls.*') ? 'white' : '#142552' }};">
                         Calls for Applications
                     </span>
                 </a>

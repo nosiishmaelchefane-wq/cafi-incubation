@@ -253,13 +253,13 @@ new class extends Component {
                 'country' => 'required|string',
                 'area_of_operation' => 'required|string|max:255',
                 'industry_or_interest' => 'required|string',
-                'years_of_operation' => 'nullable|integer|min:0|max:100',
+                'years_of_operation' => 'required|integer|min:0|max:100',
             ],
             4 => [
                 'short_bio' => 'nullable|string|max:1000',
-                'organization_name' => 'nullable|string|max:255',
-                'tax_clearance' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-                'traders_license' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+                'organization_name' => 'required|string|max:255',
+                'tax_clearance' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+                'traders_license' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
             ],
             default => []
         };

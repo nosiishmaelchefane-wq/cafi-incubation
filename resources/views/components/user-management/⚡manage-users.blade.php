@@ -490,10 +490,11 @@ new class extends Component {
                                         <i class="bi bi-check-circle-fill" style="font-size:.7rem;"></i>
                                     </button>
                                 @else
-                                    <button wire:click="$dispatch('openEditUserModal', { userId: {{ $user->id }} })" 
+                                    <button wire:click="$dispatch('openEditRegistrationModal', { userId: {{ $user->id }} })" 
                                         class="btn btn-sm btn-outline-primary" title="Edit">
                                         <i class="bi bi-pencil-fill" style="font-size:.7rem;"></i>
                                     </button>
+                                
                                     <button wire:click="confirmDelete({{ $user->id }})" 
                                             class="btn btn-sm btn-outline-danger" 
                                             title="Delete"

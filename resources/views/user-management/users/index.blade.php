@@ -11,6 +11,8 @@
 
     <!-- ── Main Card ── -->
     <livewire:user-management.manage-users />
+     <livewire:user-management.modals.edit-registration-details/>
+    <livewire:notify />
     <!-- /card -->
 
 

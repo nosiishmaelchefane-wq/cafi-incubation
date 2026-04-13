@@ -249,4 +249,6 @@ class User extends Authenticatable
     {
         return $query->where('userable_type', ESO::class);
     }
+
+    
 }

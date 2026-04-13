@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
         // Create ONLY ONE Super Admin account
         $superAdmin = User::create([
             'email' => 'superadmin@lehsff.org',
-            'username' => 'super_admin',
+            'username' => 'Super Admin',
             'phone' => '+266 5000 0001',
             'bio' => 'System Super Administrator',
             'password' => Hash::make('SuperAdmin@2024'),

@@ -80,13 +80,10 @@ class RoleAndPermissionSeeder extends Seeder
                 'view Knowledge Hub', 'create Knowledge Hub',
                 'view Analytics & Reporting',
             ],
-            'Investor' => [
-                'view Dashboard',
+              'Applicant' => [  
                 'view Calls for Applications',
-                'view Applications',
-                'view Enterprise Reports',
+                'view Applications', 'create Applications', 'edit Applications',
                 'view Knowledge Hub',
-                'view Analytics & Reporting',
             ],
         ];
 

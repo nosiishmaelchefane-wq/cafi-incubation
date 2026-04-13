@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\User;
 
 
@@ -15,7 +16,6 @@ class Call extends Model
     protected $fillable = [
         'title',
         'cohort',
-        'target_applications',
         'description',
         'details',
         'eligibility',
@@ -64,5 +64,13 @@ class Call extends Model
     {
         $this->status = 'closed';
         $this->save();
+    }
+
+     /**
+     * Applications linked to this call
+     */
+    public function applications(): HasMany
+    {
+        return $this->hasMany(\App\Models\IncubationApplication::class, 'call_id');
     }
 }

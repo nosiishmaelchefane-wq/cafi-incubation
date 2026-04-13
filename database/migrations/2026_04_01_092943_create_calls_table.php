@@ -13,8 +13,7 @@ return new class extends Migration
             
             // Basic Information
             $table->string('title');
-            $table->integer('cohort');
-            $table->integer('target_applications')->default(200);
+            $table->string('cohort');
             $table->text('description');
             $table->text('details')->nullable();
             

@@ -10,12 +10,16 @@
             </h4>
             <p class="text-muted small mb-0">Create and manage incubation programme calls · LEHSFF</p>
         </div>
-        <button class="btn btn-primary d-flex align-items-center gap-2 px-4"
-                data-bs-toggle="modal"
-                data-bs-target="#createCallModal">
-            <i class="bi bi-plus-circle-fill"></i>
-            <span>New Call</span>
-        </button>
+       
+      @if(auth()->user()->hasRole('Super Administrator'))
+         
+            <button class="btn btn-primary d-flex align-items-center gap-2 px-4"
+                    data-bs-toggle="modal"
+                    data-bs-target="#createCallModal">
+                <i class="bi bi-plus-circle-fill"></i>
+                <span>New Call</span>
+            </button>
+        @endif
     </div>
 
     <livewire:applications.calls-index />

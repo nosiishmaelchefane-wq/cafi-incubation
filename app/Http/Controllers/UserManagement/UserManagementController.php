@@ -12,7 +12,10 @@ class UserManagementController extends Controller
         return view ('user-management.users.index');
     }
 
-    public function show(){
-        return view('user-management.users.show');
+    public function show($id)
+    {
+        $user = \App\Models\User::findOrFail($id);
+
+        return view('user-management.users.show', compact('user'));
     }
 }

@@ -4,6 +4,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use App\Rules\CallValidationRules;
 use Livewire\Attributes\On; 
+use App\Models\Cohort;
 
 new class extends Component
 {
@@ -24,6 +25,11 @@ new class extends Component
     public $isEditMode = false;
     public $callId = null;
     
+    // Cohort validation
+    public $cohortExists = false;
+    public $cohortSuggestion = null;
+    public $latestCohort = null;
+    
     // Validation rules from external class
     protected function rules()
     {
@@ -34,6 +40,23 @@ new class extends Component
     protected function messages()
     {
         return CallValidationRules::messages();
+    }
+
+    public function mount()
+    {
+        $this->loadLatestCohort();
+    }
+
+    public function loadLatestCohort()
+    {
+        $this->latestCohort = Cohort::where('status', 'Active')
+            ->orderBy('cohort_number', 'desc')
+            ->first();
+        
+        if ($this->latestCohort && empty($this->cohort)) {
+            $this->cohort = (string)$this->latestCohort->cohort_number;
+            $this->checkCohortExists();
+        }
     }
 
     #[On('reset-call-form')]
@@ -64,6 +87,9 @@ new class extends Component
         
         $this->duration_months = (string)$call->duration_months;
         $this->allow_late_submissions = (bool)$call->allow_late_submissions;
+        
+        // Check if cohort exists
+        $this->checkCohortExists();
 
         $this->isEditMode = true;
 
@@ -77,7 +103,6 @@ new class extends Component
         $this->isEditMode = false;
 
         $this->title = '';
-        $this->cohort = '';
         $this->target_applications = 200;
         $this->description = '';
         $this->details = '';
@@ -89,8 +114,54 @@ new class extends Component
         $this->close_date = '';
         $this->duration_months = '6';
         $this->allow_late_submissions = false;
+        $this->cohortExists = false;
+        $this->cohortSuggestion = null;
+        
+        // Reset to latest cohort
+        $this->loadLatestCohort();
 
         $this->resetErrorBag();
+    }
+    
+    // Check if cohort exists
+    public function checkCohortExists()
+    {
+        if (empty($this->cohort)) {
+            $this->cohortExists = false;
+            $this->cohortSuggestion = null;
+            return;
+        }
+        
+        // Check ONLY for Active cohorts
+        $cohort = Cohort::where('cohort_number', $this->cohort)
+            ->where('status', 'Active')
+            ->first();
+        
+        if ($cohort) {
+            $this->cohortExists = true;
+            $this->cohortSuggestion = null;
+        } else {
+            $this->cohortExists = false;
+            $this->cohortSuggestion = null;
+            
+            // Check if cohort exists but is not Active
+            $inactiveCohort = Cohort::where('cohort_number', $this->cohort)
+                ->where('status', '!=', 'Active')
+                ->first();
+            
+            if ($inactiveCohort) {
+                $this->dispatch('notify', type: 'warning', message: "Cohort {$this->cohort} exists but is {$inactiveCohort->status}. Please create a new Active cohort.");
+            } else {
+                $this->dispatch('notify', type: 'info', message: "Cohort {$this->cohort} not found. Please create a new cohort.");
+            }
+        }
+    }
+    
+    // Get cohort details for display
+    public function getCohortDetailsProperty()
+    {
+        if (empty($this->cohort)) return null;
+        return Cohort::where('cohort_number', $this->cohort)->first();
     }
     
     // Open modal and reset form
@@ -98,13 +169,26 @@ new class extends Component
     {
         $this->resetForm();
         $this->isEditMode = false;
-
         $this->dispatch('show-create-modal');
     }
     
     // Save call to database
     public function saveCall()
     {
+        // Custom validation for cohort
+        if (empty($this->cohort)) {
+            $this->addError('cohort', 'Cohort reference is required.');
+            return;
+        }
+        
+        // Check if cohort exists
+        $cohortExists = Cohort::where('cohort_number', $this->cohort)->exists();
+        
+        if (!$cohortExists) {
+            $this->addError('cohort', 'Cohort ' . $this->cohort . ' is not registered. Please register this cohort first.');
+            return;
+        }
+        
         $this->validate();
 
         DB::beginTransaction();
@@ -158,12 +242,13 @@ new class extends Component
 
             $this->dispatch('close-modal');
             $this->dispatch('notify', type: 'success', message: $message);
+            $this->dispatch('refresh-calls');
 
             $this->resetForm();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Something went wrong: ' . $e->getMessage());
+            $this->dispatch('notify', type: 'error', message: 'Something went wrong: ' . $e->getMessage());
         }
     }
 }
@@ -171,27 +256,13 @@ new class extends Component
 ?>
 
 <div class="calls-page p-4">
-    
-    {{-- Header with button to open modal --}}
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
-        <div>
-            <h4 class="fw-bold mb-1">
-                <i class="bi bi-megaphone-fill text-primary me-2"></i>Calls for Applications
-            </h4>
-            <p class="text-muted small mb-0">Create and manage incubation programme calls · LEHSFF</p>
-        </div>
-        <button class="btn btn-primary d-flex align-items-center gap-2 px-4" wire:click="openCreateModal">
-            <i class="bi bi-plus-circle-fill"></i>
-            <span>New Call</span>
-        </button>
-    </div>
 
     {{-- ═══════════════════════════════════════
          CREATE MODAL (Bootstrap)
     ═══════════════════════════════════════ --}}
     <div class="modal fade" id="createCallModal" tabindex="-1" aria-labelledby="createCallModalLabel" aria-hidden="true" wire:ignore.self>
         <div class="modal-dialog modal-lg">
-            <div class="modal-content">
+            <div class="modal-content p-3">
                 <div class="modal-header">
                     <div>
                         <h5 class="fw-bold mb-0">
@@ -199,7 +270,7 @@ new class extends Component
                         </h5>
                         <small class="text-muted">Fill in the details to launch a new incubation call</small>
                     </div>
-                    <button type="button" class="btn-close"  wire:click="resetForm" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" wire:click="resetForm" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 
                 <div class="modal-body">
@@ -213,23 +284,62 @@ new class extends Component
                                        wire:model="title" placeholder="e.g. LEHSFF Cohort 3 – Incubation Call 2025">
                                 @error('title') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
+                            
                             <div class="col-12 col-md-6">
-                                <label class="form-label fw-medium small">Cohort Reference <span class="text-danger">*</span></label>
-                                <select class="form-select @error('cohort') is-invalid @enderror" wire:model="cohort">
-                                    <option value="">— Select Cohort —</option>
-                                    <option value="1">Cohort 1</option>
-                                    <option value="2">Cohort 2</option>
-                                    <option value="3">Cohort 3</option>
-                                    <option value="4">Cohort 4</option>
-                                </select>
-                                @error('cohort') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <label class="form-label fw-medium small">
+                                    Cohort Reference <span class="text-danger">*</span>
+                                </label>
+                                
+                                @if($latestCohort)
+                                    <div class="mb-2">
+                                        <small class="text-muted">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Latest cohort: <strong>Cohort {{ $latestCohort->cohort_number }}</strong> 
+                                            ({{ $latestCohort->name }}, {{ $latestCohort->year }})
+                                        </small>
+                                    </div>
+                                @endif
+                                
+                                <input type="text" 
+                                    class="form-control @error('cohort') is-invalid @enderror"
+                                    wire:model="cohort"
+                                    wire:keyup="checkCohortExists"
+                                    placeholder="Enter Cohort Number (e.g., 4)">
+                                
+                                @error('cohort') 
+                                    <div class="invalid-feedback">{{ $message }}</div> 
+                                @enderror
+                                
+                                <!-- Cohort validation feedback -->
+                                @if(!empty($cohort) && $cohortExists && $this->cohortDetails)
+                                    <div class="mt-2 p-2 bg-success bg-opacity-10 rounded text-white small">
+                                        <i class="bi bi-check-circle-fill me-1"></i>
+                                        ✅ Cohort {{ $cohort }} is registered: 
+                                        <strong>{{ $this->cohortDetails->name }}</strong> 
+                                        ({{ $this->cohortDetails->year }})
+                                    </div>
+                                @elseif(!empty($cohort) && !$cohortExists && !$isEditMode)
+                                    <div class="mt-2 p-2 bg-danger bg-opacity-10 rounded text-danger small">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                        ❌ Cohort "{{ $cohort }}" is not registered.
+                                        
+                                        @if($cohortSuggestion)
+                                            <div class="mt-1">
+                                                <i class="bi bi-lightbulb me-1"></i>
+                                                Did you mean: <strong>Cohort {{ $cohortSuggestion }}</strong>?
+                                            </div>
+                                        @endif
+                                        
+                                        <div class="mt-2">
+                                            <a href="#" wire:click.prevent="$dispatch('open-create-cohort-modal')" class="text-primary text-decoration-none">
+                                                <i class="bi bi-plus-circle me-1"></i>
+                                                + Register Cohort {{ $cohort }} now
+                                            </a>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
-                            <div class="col-12 col-md-6">
-                                <label class="form-label fw-medium small">Target No. of Applications</label>
-                                <input type="number" class="form-control @error('target_applications') is-invalid @enderror" 
-                                       wire:model="target_applications" placeholder="e.g. 200">
-                                @error('target_applications') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                            </div>
+                            
                             <div class="col-12">
                                 <label class="form-label fw-medium small">Short Description <span class="text-danger">*</span></label>
                                 <textarea class="form-control @error('description') is-invalid @enderror" rows="2" 
@@ -350,7 +460,8 @@ new class extends Component
                             wire:click="resetForm">
                         Cancel
                     </button>
-                    <button type="button" class="btn btn-primary" wire:click="saveCall" wire:loading.attr="disabled">
+                    <button type="button" class="btn btn-primary" wire:click="saveCall" wire:loading.attr="disabled"
+                            @if(!empty($cohort) && !$cohortExists) disabled @endif>
                         <span wire:loading.remove>{{ $isEditMode ? 'Update Call' : 'Create Call' }}</span>
                         <span wire:loading>
                             <span class="spinner-border spinner-border-sm me-1"></span> Saving...
@@ -360,6 +471,7 @@ new class extends Component
             </div>
         </div>
     </div>
+    
     <script>
     document.addEventListener('livewire:initialized', () => {
         // Listen for show modal event
@@ -376,7 +488,11 @@ new class extends Component
                 modal.hide();
             }
         });
+        
+        // Listen for cohort created event to refresh latest cohort
+        Livewire.on('cohort-created', () => {
+            @this.call('loadLatestCohort');
+        });
     });
-</script>
+    </script>
 </div>
-

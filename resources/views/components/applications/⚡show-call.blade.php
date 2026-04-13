@@ -3,7 +3,7 @@
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Call;
-//use App\Models\Application;
+use App\Models\IncubationApplication;
 
 new class extends Component
 {
@@ -43,6 +43,7 @@ new class extends Component
         if ($id) {
             $this->callId = $id;
             $this->loadCallData();
+             $this->loadApplications();
         }
     }
     
@@ -133,6 +134,39 @@ new class extends Component
             'rejected' => $this->rejectedCount,
         ];
     }
+
+
+    public function loadApplications()
+    {
+        // Get total applications count for this call
+        $this->applicationsCount = IncubationApplication::where('call_id', $this->callId)->count();
+        
+        // Get counts by status
+        $this->pendingCount = IncubationApplication::where('call_id', $this->callId)
+            ->where('status', 'pending')
+            ->count();
+        
+        $this->inReviewCount = IncubationApplication::where('call_id', $this->callId)
+            ->where('status', 'in_review')
+            ->count();
+        
+        $this->eligibleCount = IncubationApplication::where('call_id', $this->callId)
+            ->where('status', 'eligible')
+            ->count();
+        
+        $this->shortlistedCount = IncubationApplication::where('call_id', $this->callId)
+            ->where('status', 'shortlisted')
+            ->count();
+        
+        $this->rejectedCount = IncubationApplication::where('call_id', $this->callId)
+            ->where('status', 'rejected')
+            ->count();
+        
+        // Screened count (applications that have been reviewed)
+        $this->screenedCount = IncubationApplication::where('call_id', $this->callId)
+            ->whereIn('status', ['eligible', 'in_review', 'shortlisted', 'rejected'])
+            ->count();
+    }
     
     public function getEligibilityLinesProperty()
     {
@@ -222,36 +256,48 @@ new class extends Component
                     @endif
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
-                    @if($call->status === 'draft')
-                        <button class="btn cds-btn-outline-success btn-sm"
-                                onclick="if(confirm('Are you sure you want to publish this call? It will become visible to applicants.')) { @this.publishCall() }">
-                            
-                            <i class="bi bi-broadcast me-1"></i>
-                            Publish
-                        </button>
-                    @endif
-                    @if($call->status === 'published')
-                        <button class="btn cds-btn-outline-success btn-sm"
-                                onclick="if(confirm('Are you sure you want to open this call? Applications will be accepted.')) { @this.openCall() }">
-                            
-                            <i class="bi bi-play-fill me-1"></i>
-                            Open Call
-                        </button>
+                     @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
+
+                        @if($call->status === 'draft')
+                            <button class="btn cds-btn-outline-success btn-sm"
+                                    onclick="if(confirm('Are you sure you want to publish this call? It will become visible to applicants.')) { @this.publishCall({{ $call->id }}) }">
+                                <i class="bi bi-broadcast me-1"></i>
+                                Publish
+                            </button>
+                        @endif
+
+                        @if($call->status === 'published')
+                            <button class="btn cds-btn-outline-success btn-sm"
+                                    onclick="if(confirm('Are you sure you want to open this call? Applications will be accepted.')) { @this.openCall({{ $call->id }}) }">
+                                <i class="bi bi-play-fill me-1"></i>
+                                Open Call
+                            </button>
+                        @endif
+
+                        @if($call->status === 'open')
+                            <button class="btn cds-btn-outline-warning btn-sm"
+                                    onclick="if(confirm('Are you sure you want to close this call? Applications will no longer be accepted.')) { @this.closeCall({{ $call->id }}) }">
+                                <i class="bi bi-lock me-1"></i>
+                                Close Call
+                            </button>
+                        @endif
+
+                        @if($call->status === 'open')
+                            <button class="btn cds-btn-primary btn-sm" wire:click="$dispatch('edit-call', { id: {{ $call->id }} })">
+                                <i class="bi bi-pencil-fill me-1"></i>Edit Call
+                            </button>
+                        @endif
+
                     @endif
                     @if($call->status === 'open')
-                      <button class="btn cds-btn-outline-warning btn-sm"
-                            onclick="if(confirm('Are you sure you want to close this call? Applications will no longer be accepted.')) { @this.closeCall() }">
-                        
-                        <i class="bi bi-lock me-1"></i>
-                        Close Call
-                    </button>
+                        @if(auth()->check() && auth()->user()->hasRole('Applicant'))
+                            <button class="btn cds-btn-primary btn-sm" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#incubationApplicationModal">
+                                <i class="bi bi-link-45deg me-1"></i> Apply
+                            </button>
+                        @endif
                     @endif
-                    <button class="btn cds-btn-primary btn-sm" wire:click="$dispatch('edit-call', { id: {{ $call->id }} })">
-                        <i class="bi bi-pencil-fill me-1"></i>Edit Call
-                    </button>
-                    <button class="btn cds-btn-primary btn-sm">
-                        <i class="bi bi-link-45deg me-1"></i> Apply
-                    </button>
                
                 </div>
             </div>
@@ -278,10 +324,7 @@ new class extends Component
                         <div>
                             <div class="cds-kpi-val text-primary">{{ $applicationsCount }}</div>
                             <div class="cds-kpi-label">Applications</div>
-                            <div class="cds-kpi-sub">of {{ $call->target_applications }} target</div>
-                            <div class="cds-kpi-bar mt-1">
-                                <div class="cds-kpi-fill" style="background:#3b82f6; width: {{ $call->application_percentage }}%"></div>
-                            </div>
+                            <div class="cds-kpi-sub">Received</div>
                         </div>
                     </div>
                 </div>
@@ -334,24 +377,70 @@ new class extends Component
     </div>
 
     
-    <!-- PIPELINE STRIP (static) -->
-    <div class="cds-card mb-4">
-        <div class="cds-card-header d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center gap-2"><div class="cds-icon-sm"><i class="bi bi-funnel-fill"></i></div><span class="fw-semibold">Application Pipeline</span></div>
-            <span class="cds-badge-muted small">Real-time stage counts</span>
-        </div>
-        <div class="cds-card-body px-4 py-3">
-            <div class="d-flex align-items-center gap-1 overflow-auto pb-1">
-                <div class="d-flex align-items-center gap-1 flex-shrink-0"><div class="cds-pipe-step cds-pipe-active"><div class="cds-pipe-num">210</div><div class="cds-pipe-name">Submitted</div></div><i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i></div>
-                <div class="d-flex align-items-center gap-1 flex-shrink-0"><div class="cds-pipe-step cds-pipe-active"><div class="cds-pipe-num">145</div><div class="cds-pipe-name">Screened</div></div><i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i></div>
-                <div class="d-flex align-items-center gap-1 flex-shrink-0"><div class="cds-pipe-step cds-pipe-active"><div class="cds-pipe-num">98</div><div class="cds-pipe-name">Eligible</div></div><i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i></div>
-                <div class="d-flex align-items-center gap-1 flex-shrink-0"><div class="cds-pipe-step cds-pipe-active"><div class="cds-pipe-num">60</div><div class="cds-pipe-name">Evaluated</div></div><i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i></div>
-                <div class="d-flex align-items-center gap-1 flex-shrink-0"><div class="cds-pipe-step cds-pipe-active"><div class="cds-pipe-num">20</div><div class="cds-pipe-name">Top 20</div></div><i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i></div>
-                <div class="d-flex align-items-center gap-1 flex-shrink-0"><div class="cds-pipe-step cds-pipe-zero"><div class="cds-pipe-num">0</div><div class="cds-pipe-name">Top 10</div></div><i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i></div>
-                <div class="d-flex align-items-center gap-1 flex-shrink-0"><div class="cds-pipe-step cds-pipe-zero"><div class="cds-pipe-num">0</div><div class="cds-pipe-name">Confirmed</div></div></div>
+    @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
+        <!-- PIPELINE STRIP (static) -->
+        <div class="cds-card mb-4">
+            <div class="cds-card-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="cds-icon-sm"><i class="bi bi-funnel-fill"></i></div>
+                    <span class="fw-semibold">Application Pipeline</span>
+                </div>
+                <span class="cds-badge-muted small">Real-time stage counts</span>
+            </div>
+            <div class="cds-card-body px-4 py-3">
+                <div class="d-flex align-items-center gap-1 overflow-auto pb-1">
+                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                        <div class="cds-pipe-step cds-pipe-active">
+                            <div class="cds-pipe-num">210</div>
+                            <div class="cds-pipe-name">Submitted</div>
+                        </div>
+                        <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                        <div class="cds-pipe-step cds-pipe-active">
+                            <div class="cds-pipe-num">145</div>
+                            <div class="cds-pipe-name">Screened</div>
+                        </div>
+                        <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                        <div class="cds-pipe-step cds-pipe-active">
+                            <div class="cds-pipe-num">98</div>
+                            <div class="cds-pipe-name">Eligible</div>
+                        </div>
+                        <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                        <div class="cds-pipe-step cds-pipe-active">
+                            <div class="cds-pipe-num">60</div>
+                            <div class="cds-pipe-name">Evaluated</div>
+                        </div>
+                        <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                        <div class="cds-pipe-step cds-pipe-active">
+                            <div class="cds-pipe-num">20</div>
+                            <div class="cds-pipe-name">Top 20</div>
+                        </div>
+                        <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                        <div class="cds-pipe-step cds-pipe-zero">
+                            <div class="cds-pipe-num">0</div>
+                            <div class="cds-pipe-name">Top 10</div>
+                        </div>
+                        <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
+                    </div>
+                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                        <div class="cds-pipe-step cds-pipe-zero">
+                            <div class="cds-pipe-num">0</div>
+                            <div class="cds-pipe-name">Confirmed</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    @endif
 
 
     <!-- Main 2-Column Layout -->
@@ -481,21 +570,3 @@ new class extends Component
 
     @endif
 </div>
-
-<script>
-function callDetailApp() {
-    return {
-        showToast: @entangle('showToast'),
-        toastMessage: @entangle('toastMessage'),
-        toastType: @entangle('toastType'),
-        
-        init() {
-            Livewire.on('toast-shown', () => {
-                setTimeout(() => {
-                    this.showToast = false;
-                }, 3200);
-            });
-        }
-    }
-}
-</script>

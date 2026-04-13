@@ -64,19 +64,7 @@
                 </a>
             </li>
             @endcan
-
-            <!-- Applications - Visible to Entrepreneur and Super Admin -->
-            @can('view Applications')
-            <li class="nav-item">
-                <a href="#" 
-                class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" 
-                data-tooltip="Applications" 
-                style="color: #333;">
-                    <i class="bi bi-file-earmark-text-fill fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
-                    <span class="fw-medium sidebar-text ms-3" style="color: #142552;">Applications</span>
-                </a>
-            </li>
-            @endcan
+          
 
             <!-- Screening & Eligibility - Admin only -->
             @can('view Screening & Eligibility')
@@ -122,15 +110,6 @@
                 <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Shortlisting &amp; Pitches" style="color: #333;">
                     <i class="bi bi-list-check fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
                     <span class="fw-medium sidebar-text ms-3" style="color: #142552;">Shortlisting &amp; Pitches</span>
-                </a>
-            </li>
-
-            <!-- Cohort Management - Placeholder (no route yet) -->
-            <li class="nav-item">
-                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Cohort Management" style="color: #333;">
-                    <i class="bi bi-people-fill fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
-                    <span class="fw-medium sidebar-text ms-3 me-auto" style="color: #142552;">Manage Cohorts</span>
-                    <span class="badge ms-2 sidebar-badge flex-shrink-0" style="background-color: #05923b; color: white;">ESO</span>
                 </a>
             </li>
             @endcan
@@ -183,13 +162,35 @@
             </li>
             @endcan
 
-            <!-- POST INCUBATION - Admin only (placeholders) -->
-            @can('view Analytics & Reporting')
+            <!-- POST INCUBATION - Admin only -->
+            @can('view Cohort Management')
             <li class="nav-item mt-2">
                 <small class="section-label px-3 sidebar-text" style="color: #142552; font-weight: 700;">Post-Incubation</small>
                 <hr class="section-divider my-1" style="display:none;">
             </li>
 
+            <!-- Cohort Management -->
+            <a href="{{ route('cohorts.index') }}" 
+                class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('cohorts.*') ? 'active-nav' : '' }}" 
+                data-tooltip="Cohort Management"
+                style="color: #333; {{ request()->routeIs('cohorts.*') ? 'background-color: #05923b; color: white;' : '' }}">
+                    
+                    <i class="bi bi-people-fill fs-5 nav-icon flex-shrink-0"
+                    style="color: {{ request()->routeIs('cohorts.*') ? 'white' : '#142552' }};"></i>
+                    
+                    <span class="fw-medium sidebar-text ms-3 me-auto"
+                        style="color: {{ request()->routeIs('cohorts.*') ? 'white' : '#142552' }};">
+                        Manage Cohort
+                    </span>
+                    
+                    <span class="badge ms-2 sidebar-badge flex-shrink-0" 
+                        style="background-color: {{ request()->routeIs('cohorts.*') ? 'white' : '#142552' }}; 
+                                color: {{ request()->routeIs('cohorts.*') ? '#05923b' : 'white' }};">
+                        Admin
+                    </span>
+            </a>
+
+            <!-- Graduation & Outcomes -->
             <li class="nav-item">
                 <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Graduation &amp; Outcomes" style="color: #333;">
                     <i class="bi bi-mortarboard-fill fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
@@ -197,6 +198,7 @@
                 </a>
             </li>
 
+            <!-- Analytics & Reporting -->
             <li class="nav-item">
                 <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Analytics &amp; Reporting" style="color: #333;">
                     <i class="bi bi-graph-up-arrow fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>

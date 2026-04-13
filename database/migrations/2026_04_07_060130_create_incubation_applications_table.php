@@ -10,13 +10,9 @@ return new class extends Migration
     {
         Schema::create('incubation_applications', function (Blueprint $table) {
             $table->id();
-            
-            // System generated fields
             $table->string('application_number')->unique();
             $table->date('applied_date');
             $table->time('applied_time');
-            
-            // Company Information
             $table->string('company_name');
             $table->string('registered_company_name')->nullable();
             $table->text('business_description')->nullable();
@@ -32,11 +28,7 @@ return new class extends Migration
             $table->integer('year_of_establishment')->nullable();
             $table->string('company_stage')->nullable();
             $table->string('company_size')->nullable();
-            
-            // Social Media (JSON field - can store multiple platforms)
             $table->json('social_media')->nullable();
-            
-            // Applicant Information
             $table->string('applicant_name');
             $table->string('applicant_email');
             $table->string('applicant_title')->nullable();
@@ -45,35 +37,22 @@ return new class extends Migration
             $table->string('applicant_contact_number');
             $table->text('applicant_about')->nullable();
             $table->json('applicant_social_media')->nullable();
-            
-            // Financial & Support Questions
             $table->string('received_financial_support')->nullable();
             $table->string('participated_competitions')->nullable();
             $table->boolean('willing_to_commit')->default(false);
-            
-            // Numeric Fields
             $table->integer('number_of_shareholders')->default(0);
             $table->integer('number_of_customers')->default(0);
             $table->decimal('average_monthly_sales', 12, 2)->default(0);
             $table->integer('jobs_to_create_12_months')->default(0);
             $table->integer('number_women_shareholders')->default(0);
             $table->integer('number_youth_shareholders')->default(0);
-            
-            // Additional Fields
             $table->text('industry_other_elaboration')->nullable();
-            
-            // Relationships
             $table->foreignId('call_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            
-            // Status
             $table->string('status')->default('pending');
             $table->timestamp('submitted_at')->nullable();
-            
             $table->timestamps();
             $table->softDeletes();
-            
-            // Indexes
             $table->index(['call_id', 'status']);
             $table->index('application_number');
             $table->index('applicant_email');

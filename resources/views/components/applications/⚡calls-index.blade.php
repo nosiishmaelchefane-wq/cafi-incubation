@@ -46,11 +46,6 @@ new class extends Component
         $this->resetPage();
     }
     
-    // Toggle view
-    public function setView($view)
-    {
-        $this->view = $view;
-    }
 
         // Publish call
     public function publishCall($id)
@@ -143,7 +138,12 @@ new class extends Component
     // Get calls with filters
     public function getCallsProperty()
     {
-        return \App\Models\Call::query()
+        $query = \App\Models\Call::withCount('applications');
+        if (!auth()->check() || !auth()->user()->hasRole('Super Administrator')) {
+            $query->where('status', 'open');
+        }
+        
+        return $query
             ->when($this->search, function ($query) {
                 $query->where('title', 'like', '%' . $this->search . '%')
                     ->orWhere('description', 'like', '%' . $this->search . '%');
@@ -161,24 +161,35 @@ new class extends Component
             ->paginate(10);
     }
     
-    // Get statistics
+    // Get statistics - hide draft counts from non-admins
     public function getTotalCallsProperty()
     {
+        if (!auth()->check() || !auth()->user()->hasRole('Super Administrator')) {
+            return \App\Models\Call::where('status', 'open')->count();
+        }
         return \App\Models\Call::count();
     }
-    
+
     public function getOpenCallsProperty()
     {
         return \App\Models\Call::where('status', 'open')->count();
     }
-    
+
     public function getDraftCallsProperty()
     {
+        // Only Super Admin can see draft count
+        if (!auth()->check() || !auth()->user()->hasRole('Super Administrator')) {
+            return 0;
+        }
         return \App\Models\Call::where('status', 'draft')->count();
     }
-    
+
     public function getTotalApplicationsProperty()
     {
+        // Only Super Admin can see total applications
+        if (!auth()->check() || !auth()->user()->hasRole('Super Administrator')) {
+            return 0;
+        }
         return \App\Models\Call::sum('applications_count');
     }
 }
@@ -206,22 +217,37 @@ new class extends Component
                 </div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="card kpi-card border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center gap-3 p-3">
-                    <div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-hourglass-split"></i></div>
-                    <div><div class="fw-bold fs-4 lh-1">{{ $this->draftCalls }}</div><small class="text-muted">Draft</small></div>
+        @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
+
+            <div class="col-6 col-md-3">
+                <div class="card kpi-card border-0 shadow-sm">
+                    <div class="card-body d-flex align-items-center gap-3 p-3">
+                        <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
+                            <i class="bi bi-hourglass-split"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold fs-4 lh-1">{{ $this->draftCalls }}</div>
+                            <small class="text-muted">Draft</small>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card kpi-card border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center gap-3 p-3">
-                    <div class="kpi-icon bg-info bg-opacity-10 text-info"><i class="bi bi-file-earmark-text-fill"></i></div>
-                    <div><div class="fw-bold fs-4 lh-1">{{ $this->totalApplications }}</div><small class="text-muted">Total Applications</small></div>
+
+            <div class="col-6 col-md-3">
+                <div class="card kpi-card border-0 shadow-sm">
+                    <div class="card-body d-flex align-items-center gap-3 p-3">
+                        <div class="kpi-icon bg-info bg-opacity-10 text-info">
+                            <i class="bi bi-file-earmark-text-fill"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold fs-4 lh-1">{{ $this->totalApplications }}</div>
+                            <small class="text-muted">Total Applications</small>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+
+        @endif
     </div>
 
     {{-- ═══════════════════════════════════════
@@ -246,16 +272,6 @@ new class extends Component
                         <option value="open">Open</option>
                         <option value="closed">Closed</option>
                         <option value="archived">Archived</option>
-                    </select>
-                </div>
-                <div class="col-6 col-md-2">
-                    <label class="form-label small fw-medium mb-1">Cohort</label>
-                    <select class="form-select form-select-sm" wire:model.live="filterCohort">
-                        <option value="">All Cohorts</option>
-                        <option value="1">Cohort 1</option>
-                        <option value="2">Cohort 2</option>
-                        <option value="3">Cohort 3</option>
-                        <option value="4">Cohort 4</option>
                     </select>
                 </div>
                 <div class="col-6 col-md-2">
@@ -288,12 +304,9 @@ new class extends Component
             <div class="d-flex align-items-center gap-2">
                 <small class="text-muted">Showing {{ $this->calls->total() }} of {{ $this->totalCalls }} calls</small>
                 <div class="btn-group btn-group-sm ms-2" role="group">
-                    <button class="btn btn-outline-secondary {{ $view === 'table' ? 'active' : '' }}" wire:click="setView('table')" title="Table view">
+                   
                         <i class="bi bi-table"></i>
-                    </button>
-                    <button class="btn btn-outline-secondary {{ $view === 'grid' ? 'active' : '' }}" wire:click="setView('grid')" title="Grid view">
-                        <i class="bi bi-grid-3x3-gap"></i>
-                    </button>
+                    
                 </div>
             </div>
         </div>
@@ -326,9 +339,7 @@ new class extends Component
                             <td>{{ $call->open_date ? $call->open_date->format('d M Y') : '—' }}</td>
                             <td>{{ $call->close_date ? $call->close_date->format('d M Y') : '—' }}</td>
                             <td class="text-center">
-                                <span class="fw-semibold">{{ $call->applications_count }}</span>
-                                <span class="text-muted"> / </span>
-                                <span class="text-muted">{{ $call->target_applications }}</span>
+                                 <span class="fw-semibold">{{ $call->applications_count }}</span>
                             </td>
                             <td>
                                 @php
@@ -344,44 +355,51 @@ new class extends Component
                                     {{ ucfirst($call->status) }}
                                 </span>
                             </td>
-                            <td class="text-center">
+                           <td class="text-center">
                                 <div class="d-flex justify-content-center gap-1">
+                                    
+                                    <!-- View (visible to everyone) -->
                                     <a href="{{ route('call.show', $call->id) }}">
                                         <button class="btn btn-sm btn-outline-primary py-1 px-2" title="View details">
                                             <i class="bi bi-eye"></i>
                                         </button>
                                     </a>
-                                    <a href="#"
-                                    class="btn btn-sm btn-outline-secondary py-1 px-2"
-                                    title="Edit"
-                                    wire:click="$dispatch('edit-call', { id: {{ $call->id }} })">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    @if($call->status === 'draft')
-                                        <button class="btn btn-sm btn-outline-success py-1 px-2" 
-                                                wire:click="publishCall({{ $call->id }})" 
-                                                title="Publish"
-                                                onclick="return confirm('Are you sure you want to publish this call? It will become visible to applicants.')"
-                                                wire:loading.attr="disabled">
-                                            <i class="bi bi-broadcast"></i>
-                                            <span wire:loading wire:target="publishCall({{ $call->id }})" class="spinner-border spinner-border-sm ms-1"></span>
+
+                                    <!-- Only Super Admin -->
+                                    @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
+
+                                        <a href="#"
+                                        class="btn btn-sm btn-outline-secondary py-1 px-2"
+                                        title="Edit"
+                                        wire:click="$dispatch('edit-call', { id: {{ $call->id }} })">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+
+                                        @if($call->status === 'draft')
+                                            <button class="btn btn-sm btn-outline-success py-1 px-2" 
+                                                    wire:click="publishCall({{ $call->id }})" 
+                                                    title="Publish"
+                                                    wire:confirm="Are you sure you want to publish this call? It will become visible to applicants.">
+                                                <i class="bi bi-broadcast"></i>
+                                            </button>
+                                        @elseif($call->status !== 'archived' && $call->status !== 'closed')
+                                            <button class="btn btn-sm btn-outline-warning py-1 px-2" 
+                                                    title="Unpublish"
+                                                    wire:click="unpublishCall({{ $call->id }})"
+                                                    wire:confirm="Are you sure you want to unpublish this call? It will be moved back to draft.">
+                                                <i class="bi bi-pause-circle"></i>
+                                            </button>
+                                        @endif
+
+                                        <button class="btn btn-sm btn-outline-danger py-1 px-2" 
+                                                title="Delete"
+                                                wire:click="deleteCall({{ $call->id }})"
+                                                wire:confirm="Are you sure you want to delete this call? This action cannot be undone.">
+                                            <i class="bi bi-trash3"></i>
                                         </button>
-                                    @elseif($call->status !== 'archived' && $call->status !== 'closed')
-                                        <button class="btn btn-sm btn-outline-warning py-1 px-2" 
-                                                wire:click="unpublishCall({{ $call->id }})" 
-                                                title="Unpublish"
-                                                onclick="return confirm('Are you sure you want to unpublish this call? It will be moved back to draft.')"
-                                                wire:loading.attr="disabled">
-                                            <i class="bi bi-pause-circle"></i>
-                                            <span wire:loading wire:target="unpublishCall({{ $call->id }})" class="spinner-border spinner-border-sm ms-1"></span>
-                                        </button>
+
                                     @endif
-                                    <button class="btn btn-sm btn-outline-danger py-1 px-2" 
-                                            title="Delete"
-                                            wire:click="deleteCall({{ $call->id }})"
-                                            wire:confirm="Are you sure you want to delete this call? This action cannot be undone.">
-                                        <i class="bi bi-trash3"></i>
-                                    </button>
+
                                 </div>
                             </td>
                         </tr>
@@ -397,70 +415,6 @@ new class extends Component
                 </table>
             </div>
             <div class="card-footer bg-white border-top py-3">
-                {{ $this->calls->links() }}
-            </div>
-        </div>
-        @endif
-
-        {{-- GRID VIEW --}}
-        @if($view === 'grid')
-        <div class="card-body p-4">
-            <div class="row g-3">
-                @forelse($this->calls as $call)
-                <div class="col-12 col-md-6 col-xl-4" wire:key="call-{{ $call->id }}">
-                    <div class="card call-grid-card border shadow-sm h-100">
-                        <div class="card-body p-4">
-                            <div class="d-flex align-items-start justify-content-between mb-3">
-                                @php
-                                    $statusColors = [
-                                        'draft' => 'bg-warning text-dark',
-                                        'published' => 'bg-primary text-white',
-                                        'open' => 'bg-success text-white',
-                                        'closed' => 'bg-secondary text-white',
-                                        'archived' => 'bg-dark text-white',
-                                    ];
-                                @endphp
-                                <span class="badge rounded-pill {{ $statusColors[$call->status] ?? 'bg-light text-muted' }}">
-                                    {{ ucfirst($call->status) }}
-                                </span>
-                                <span class="badge bg-primary bg-opacity-10 text-primary">Cohort {{ $call->cohort }}</span>
-                            </div>
-                            <h6 class="fw-bold mb-1">{{ $call->title }}</h6>
-                            <p class="text-muted small mb-3">{{ Str::limit($call->description, 100) }}</p>
-                            <div class="d-flex flex-column gap-1 mb-3 small text-muted">
-                                <div><i class="bi bi-calendar-event me-2"></i>Opens: <span class="text-dark">{{ $call->open_date ? $call->open_date->format('d M Y') : '—' }}</span></div>
-                                <div><i class="bi bi-calendar-x me-2"></i>Closes: <span class="text-dark">{{ $call->close_date ? $call->close_date->format('d M Y') : '—' }}</span></div>
-                                <div><i class="bi bi-file-earmark-text me-2"></i>{{ $call->applications_count }} / {{ $call->target_applications }} applications</div>
-                            </div>
-                            @if($call->target_applications > 0)
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between small mb-1">
-                                    <span class="text-muted">Applications</span>
-                                    <span class="fw-medium">{{ round(($call->applications_count / $call->target_applications) * 100) }}%</span>
-                                </div>
-                                <div class="progress" style="height:6px;">
-                                    <div class="progress-bar bg-primary" style="width: {{ min(100, round(($call->applications_count / $call->target_applications) * 100)) }}%"></div>
-                                </div>
-                            </div>
-                            @endif
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-sm btn-outline-primary flex-fill">
-                                    <i class="bi bi-eye me-1"></i>View
-                                </button>
-                                <button class="btn btn-sm btn-outline-secondary flex-fill">
-                                    <i class="bi bi-pencil me-1"></i>Edit
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                @empty
-                <div class="col-12 text-center py-4 text-muted">
-                    <i class="bi bi-inbox fs-3 d-block mb-2 opacity-50"></i>No calls found.
-                </div>
-                @endforelse
-            </div>
-            <div class="mt-4">
                 {{ $this->calls->links() }}
             </div>
         </div>

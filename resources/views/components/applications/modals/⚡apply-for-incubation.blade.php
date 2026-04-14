@@ -333,7 +333,7 @@ new class extends Component
             $this->resetForm();
             $this->dispatch('close-application-modal');
             $this->dispatch('application-updated');
-            $this->dispatch('notify', type: 'success', message: 'Application submitted successfully! Application Number: ' . $application->application_number);
+            $this->dispatch('notify', type: 'success', message: 'Application created successfully! Application Number: ' . $application->application_number . '. Please review your application and click "Submit" when ready.');
         }
     }
     

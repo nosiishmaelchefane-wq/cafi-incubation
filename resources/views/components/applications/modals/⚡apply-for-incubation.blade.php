@@ -326,7 +326,7 @@ new class extends Component
                 'industry_other_elaboration' => $this->industry_other_elaboration,
                 'call_id' => $this->id,
                 'user_id' => Auth::id(),
-                'status' => 'pending',
+                'status' => 'Submitted',
                 'submitted_at' => now(),
             ]);
 

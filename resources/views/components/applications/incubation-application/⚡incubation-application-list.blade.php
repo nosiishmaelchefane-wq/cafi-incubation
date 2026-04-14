@@ -37,8 +37,22 @@ new class extends Component
     {
         $query = \App\Models\IncubationApplication::query()
             ->with('user');
+        
         if (!auth()->user()->hasRole('Super Administrator')) {
             $query->where('user_id', auth()->id());
+        } else {
+            // For Super Admin, handle draft exclusion based on status filter
+            if (empty($this->statusFilter)) {
+                // If no status filter is applied (All tab), exclude drafts
+                $query->where('status', '!=', 'draft');
+            } elseif ($this->statusFilter === 'draft') {
+                // If specifically filtering for drafts, show them
+                $query->where('status', 'draft');
+            } else {
+                // For other status filters (submitted, in_review, eligible, shortlisted, rejected), exclude drafts
+                $query->where('status', '!=', 'draft')
+                    ->where('status', $this->statusFilter);
+            }
         }
 
         if ($this->id) {
@@ -48,9 +62,9 @@ new class extends Component
         if ($this->search) {
             $query->where(function($q) {
                 $q->where('company_name', 'like', '%' . $this->search . '%')
-                ->orWhere('applicant_name', 'like', '%' . $this->search . '%')
-                ->orWhere('application_number', 'like', '%' . $this->search . '%')
-                ->orWhere('applicant_email', 'like', '%' . $this->search . '%');
+                    ->orWhere('applicant_name', 'like', '%' . $this->search . '%')
+                    ->orWhere('application_number', 'like', '%' . $this->search . '%')
+                    ->orWhere('applicant_email', 'like', '%' . $this->search . '%');
             });
         }
 
@@ -67,21 +81,27 @@ new class extends Component
         }
 
         if ($this->statusFilter) {
-            $query->where('status', $this->statusFilter);
+            // Only apply status filter if it's not already handled above for Super Admin
+            if (!auth()->user()->hasRole('Super Administrator')) {
+                $query->where('status', $this->statusFilter);
+            }
         }
 
         return $query->orderBy('created_at', 'desc')->paginate($this->perPage);
     }
     
-    public function getStatusCountsProperty()
+   public function getStatusCountsProperty()
     {
+        $query = IncubationApplication::where('call_id', $this->id);
+        
         return [
-            'all' => IncubationApplication::where('call_id', $this->id)->count(),
-            'pending' => IncubationApplication::where('call_id', $this->id)->where('status', 'pending')->count(),
-            'in_review' => IncubationApplication::where('call_id', $this->id)->where('status', 'in_review')->count(),
-            'eligible' => IncubationApplication::where('call_id', $this->id)->where('status', 'eligible')->count(),
-            'shortlisted' => IncubationApplication::where('call_id', $this->id)->where('status', 'shortlisted')->count(),
-            'rejected' => IncubationApplication::where('call_id', $this->id)->where('status', 'rejected')->count(),
+            'all' => (clone $query)->where('status', '!=', 'draft')->count(),
+            'submitted' => (clone $query)->where('status', 'submitted')->count(),
+            'in_review' => (clone $query)->where('status', 'in_review')->count(),
+            'eligible' => (clone $query)->where('status', 'eligible')->count(),
+            'shortlisted' => (clone $query)->where('status', 'shortlisted')->count(),
+            'rejected' => (clone $query)->where('status', 'rejected')->count(),
+            'draft' => (clone $query)->where('status', 'draft')->count(),
         ];
     }
     
@@ -127,6 +147,29 @@ new class extends Component
         $applications = IncubationApplication::where('call_id', $this->id)->get();
         // Add export logic here
         $this->dispatch('notify', type: 'success', message: 'Export started!');
+    }
+
+
+    public function submitDraftApplication($applicationId)
+    {
+        $application = IncubationApplication::findOrFail($applicationId);
+        
+        // Only allow if current status is Draft
+        if ($application->status !== 'draft') {
+            $this->dispatch('notify', type: 'error', message: 'Only draft applications can be submitted.');
+            return;
+        }
+        
+        // Update the status to Submitted
+        $application->update([
+            'status' => 'submitted',
+            'submitted_at' => now(),
+        ]);
+        
+        
+        $this->dispatch('application-updated');
+        $this->dispatch('refresh-applications');
+        $this->dispatch('notify', type: 'success', message: 'Application #' . $application->application_number . ' has been submitted successfully!');
     }
     
     public function resetFilters()
@@ -249,13 +292,14 @@ new class extends Component
             </div>
             
             <!-- Status Tabs -->
+            <!-- Status Tabs -->
             @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
                 <div class="cds-tab-row">
                     <button class="cds-tab-btn {{ $statusFilter === '' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', '')">
                         All <span class="cds-tab-count">{{ $this->statusCounts['all'] }}</span>
                     </button>
-                    <button class="cds-tab-btn {{ $statusFilter === 'pending' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', 'pending')">
-                        Pending <span class="cds-tab-count">{{ $this->statusCounts['pending'] }}</span>
+                    <button class="cds-tab-btn {{ $statusFilter === 'submitted' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', 'submitted')">
+                        Submitted <span class="cds-tab-count">{{ $this->statusCounts['submitted'] }}</span>
                     </button>
                     <button class="cds-tab-btn {{ $statusFilter === 'in_review' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', 'in_review')">
                         In Review <span class="cds-tab-count">{{ $this->statusCounts['in_review'] }}</span>
@@ -268,6 +312,9 @@ new class extends Component
                     </button>
                     <button class="cds-tab-btn {{ $statusFilter === 'rejected' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', 'rejected')">
                         Rejected <span class="cds-tab-count">{{ $this->statusCounts['rejected'] }}</span>
+                    </button>
+                    <button class="cds-tab-btn {{ $statusFilter === 'draft' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', 'draft')">
+                        Draft <span class="cds-tab-count">{{ $this->statusCounts['draft'] }}</span>
                     </button>
                 </div>
             @endif
@@ -384,37 +431,46 @@ new class extends Component
                                     <a href="{{ route('incubation.show', $app->id) }}" class="cds-action-btn" title="View">
                                         <i class="bi bi-eye"></i>
                                     </a>
-
+                                        @if($app->status === 'draft' && auth()->id() === $app->user_id)
+                                            <button class="btn btn-sm btn-outline-success py-1 px-2" 
+                                                    title="Submit Application"
+                                                    wire:click="submitDraftApplication({{ $app->id }})"
+                                                    wire:confirm="Are you sure you want to submit this application? Once submitted, you will not be able to make any further changes.">
+                                                <i class="bi bi-send-check-fill"></i>
+                                            </button>
+                                        @endif
                                     <!-- Dropdown: only for Super Administrator -->
                                     @role('Super Administrator')
-                                    <div class="cds-dropdown-container">
-                                        <button class="cds-action-btn" type="button" title="Change Status">
-                                            <i class="bi bi-three-dots-vertical"></i>
-                                        </button>
-                                        <ul class="cds-dropdown-menu">
-                                            <li>
-                                                <a class="cds-dropdown-item" href="#" wire:click.prevent="updateStatus({{ $app->id }}, 'eligible')">
-                                                    <i class="bi bi-check-circle-fill text-success"></i> Mark Eligible
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="cds-dropdown-item" href="#" wire:click.prevent="updateStatus({{ $app->id }}, 'in_review')">
-                                                    <i class="bi bi-hourglass-split text-info"></i> Move to Review
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="cds-dropdown-item" href="#" wire:click.prevent="updateStatus({{ $app->id }}, 'shortlisted')">
-                                                    <i class="bi bi-star-fill text-warning"></i> Shortlist
-                                                </a>
-                                            </li>
-                                            <li class="cds-dropdown-divider"></li>
-                                            <li>
-                                                <a class="cds-dropdown-item text-danger" href="#" wire:click.prevent="updateStatus({{ $app->id }}, 'rejected')">
-                                                    <i class="bi bi-x-circle-fill"></i> Reject
-                                                </a>
-                                            </li>
-                                        </ul>
-                                    </div>
+                                        @if($app->status !== 'draft')
+                                            <div class="cds-dropdown-container">
+                                                <button class="cds-action-btn" type="button" title="Change Status">
+                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                </button>
+                                                <ul class="cds-dropdown-menu">
+                                                    <li>
+                                                        <a class="cds-dropdown-item" href="#" wire:click.prevent="updateStatus({{ $app->id }}, 'eligible')">
+                                                            <i class="bi bi-check-circle-fill text-success"></i> Mark Eligible
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="cds-dropdown-item" href="#" wire:click.prevent="updateStatus({{ $app->id }}, 'in_review')">
+                                                            <i class="bi bi-hourglass-split text-info"></i> Move to Review
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="cds-dropdown-item" href="#" wire:click.prevent="updateStatus({{ $app->id }}, 'shortlisted')">
+                                                            <i class="bi bi-star-fill text-warning"></i> Shortlist
+                                                        </a>
+                                                    </li>
+                                                    <li class="cds-dropdown-divider"></li>
+                                                    <li>
+                                                        <a class="cds-dropdown-item text-danger" href="#" wire:click.prevent="updateStatus({{ $app->id }}, 'rejected')">
+                                                            <i class="bi bi-x-circle-fill"></i> Reject
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        @endif
                                     @endrole
                                 </div>
                             </td>

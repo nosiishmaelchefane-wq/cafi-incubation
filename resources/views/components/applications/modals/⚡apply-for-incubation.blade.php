@@ -326,17 +326,10 @@ new class extends Component
                 'industry_other_elaboration' => $this->industry_other_elaboration,
                 'call_id' => $this->id,
                 'user_id' => Auth::id(),
-                'status' => 'Submitted',
+                'status' => 'Draft',
                 'submitted_at' => now(),
             ]);
 
-            try {
-                    Mail::to($this->applicant_email)->send(new ApplicationSubmittedMail($application));
-                } catch (\Exception $e) {
-                    // Log error but don't stop the application process
-                    \Log::error('Failed to send application email: ' . $e->getMessage());
-            }
-            
             $this->resetForm();
             $this->dispatch('close-application-modal');
             $this->dispatch('application-updated');

@@ -145,35 +145,43 @@ new class extends Component
     }
 
 
-    public function loadApplications()
+   public function loadApplications()
     {
-        // Get total applications count for this call
-        $this->applicationsCount = IncubationApplication::where('call_id', $this->callId)->count();
+        // Get total applications count for this call (excluding drafts)
+        $this->applicationsCount = IncubationApplication::where('call_id', $this->callId)
+            ->where('status', '!=', 'draft')
+            ->count();
         
-        // Get counts by status
+        // Get counts by status (excluding drafts)
         $this->pendingCount = IncubationApplication::where('call_id', $this->callId)
             ->where('status', 'pending')
+            ->where('status', '!=', 'draft')
             ->count();
         
         $this->inReviewCount = IncubationApplication::where('call_id', $this->callId)
             ->where('status', 'in_review')
+            ->where('status', '!=', 'draft')
             ->count();
         
         $this->eligibleCount = IncubationApplication::where('call_id', $this->callId)
             ->where('status', 'eligible')
+            ->where('status', '!=', 'draft')
             ->count();
         
         $this->shortlistedCount = IncubationApplication::where('call_id', $this->callId)
             ->where('status', 'shortlisted')
+            ->where('status', '!=', 'draft')
             ->count();
         
         $this->rejectedCount = IncubationApplication::where('call_id', $this->callId)
             ->where('status', 'rejected')
+            ->where('status', '!=', 'draft')
             ->count();
         
-        // Screened count (applications that have been reviewed)
+        // Screened count (applications that have been reviewed, excluding drafts)
         $this->screenedCount = IncubationApplication::where('call_id', $this->callId)
             ->whereIn('status', ['eligible', 'in_review', 'shortlisted', 'rejected'])
+            ->where('status', '!=', 'draft')
             ->count();
     }
     

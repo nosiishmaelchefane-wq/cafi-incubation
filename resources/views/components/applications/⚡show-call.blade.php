@@ -323,71 +323,122 @@ new class extends Component
 
             <div class="cds-hero-divider my-4"></div>
 
-            <!-- KPI Cards -->
-            <div class="row g-3">
-                <div class="col-6 col-md-3">
-                    <div class="cds-kpi">
-                        <div class="cds-kpi-icon" style="background:rgba(59,130,246,0.12); color:#3b82f6;">
-                            <i class="bi bi-file-earmark-text-fill"></i>
-                        </div>
-                        <div>
-                            <div class="cds-kpi-val text-primary">{{ $applicationsCount }}</div>
-                            <div class="cds-kpi-label">Applications</div>
-                            <div class="cds-kpi-sub">Received</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="cds-kpi">
-                        <div class="cds-kpi-icon" style="background:rgba(16,185,129,0.12); color:#10b981;">
-                            <i class="bi bi-calendar-check-fill"></i>
-                        </div>
-                        <div>
-                            <div class="cds-kpi-val text-success">
-                                @if($call->status === 'open' && $call->days_remaining)
-                                    {{ (int) $call->days_remaining }}d
-                                @else
-                                    —
-                                @endif
+            <!-- KPI Cards - Conditionally visible based on role -->
+            @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
+                <!-- All stats visible to Super Admin -->
+                <div class="row g-3">
+                    <div class="col-6 col-md-3">
+                        <div class="cds-kpi">
+                            <div class="cds-kpi-icon" style="background:rgba(59,130,246,0.12); color:#3b82f6;">
+                                <i class="bi bi-file-earmark-text-fill"></i>
                             </div>
-                            <div class="cds-kpi-label">
-                                {{ $call->status === 'open' ? 'Days Remaining' : 'Window Closed' }}
+                            <div>
+                                <div class="cds-kpi-val text-primary">{{ $applicationsCount }}</div>
+                                <div class="cds-kpi-label">Applications</div>
+                                <div class="cds-kpi-sub">Received</div>
                             </div>
-                            <div class="cds-kpi-sub">Closes {{ $call->close_date ? $call->close_date->format('d M Y') : 'N/A' }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="cds-kpi">
+                            <div class="cds-kpi-icon" style="background:rgba(16,185,129,0.12); color:#10b981;">
+                                <i class="bi bi-calendar-check-fill"></i>
+                            </div>
+                            <div>
+                                <div class="cds-kpi-val text-success">
+                                    @if($call->status === 'open' && $call->days_remaining)
+                                        {{ (int) $call->days_remaining }}d
+                                    @else
+                                        —
+                                    @endif
+                                </div>
+                                <div class="cds-kpi-label">
+                                    {{ $call->status === 'open' ? 'Days Remaining' : 'Window Closed' }}
+                                </div>
+                                <div class="cds-kpi-sub">Closes {{ $call->close_date ? $call->close_date->format('d M Y') : 'N/A' }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="cds-kpi">
+                            <div class="cds-kpi-icon" style="background:rgba(245,158,11,0.12); color:#f59e0b;">
+                                <i class="bi bi-funnel-fill"></i>
+                            </div>
+                            <div>
+                                <div class="cds-kpi-val text-warning">{{ $screenedCount }}</div>
+                                <div class="cds-kpi-label">Screened</div>
+                                <div class="cds-kpi-sub">of total submitted</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="cds-kpi">
+                            <div class="cds-kpi-icon" style="background:rgba(139,92,246,0.12); color:#8b5cf6;">
+                                <i class="bi bi-trophy-fill"></i>
+                            </div>
+                            <div>
+                                <div class="cds-kpi-val" style="color:#8b5cf6;">{{ $shortlistedCount }}</div>
+                                <div class="cds-kpi-label">Shortlisted</div>
+                                <div class="cds-kpi-sub">proceeding to evaluation</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-3">
-                    <div class="cds-kpi">
-                        <div class="cds-kpi-icon" style="background:rgba(245,158,11,0.12); color:#f59e0b;">
-                            <i class="bi bi-funnel-fill"></i>
-                        </div>
-                        <div>
-                            <div class="cds-kpi-val text-warning">{{ $screenedCount }}</div>
-                            <div class="cds-kpi-label">Screened</div>
-                            <div class="cds-kpi-sub">of total submitted</div>
+            @elseif(auth()->check() && auth()->user()->hasRole('Applicant'))
+                <!-- Only Days Remaining visible to Applicant -->
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="cds-kpi">
+                            <div class="cds-kpi-icon" style="background:rgba(16,185,129,0.12); color:#10b981;">
+                                <i class="bi bi-calendar-check-fill"></i>
+                            </div>
+                            <div>
+                                <div class="cds-kpi-val text-success">
+                                    @if($call->status === 'open' && $call->days_remaining)
+                                        {{ (int) $call->days_remaining }}d
+                                    @else
+                                        —
+                                    @endif
+                                </div>
+                                <div class="cds-kpi-label">
+                                    {{ $call->status === 'open' ? 'Days Remaining to Apply' : 'Application Window Closed' }}
+                                </div>
+                                <div class="cds-kpi-sub">Closes {{ $call->close_date ? $call->close_date->format('d M Y') : 'N/A' }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-6 col-md-3">
-                    <div class="cds-kpi">
-                        <div class="cds-kpi-icon" style="background:rgba(139,92,246,0.12); color:#8b5cf6;">
-                            <i class="bi bi-trophy-fill"></i>
-                        </div>
-                        <div>
-                            <div class="cds-kpi-val" style="color:#8b5cf6;">{{ $shortlistedCount }}</div>
-                            <div class="cds-kpi-label">Shortlisted</div>
-                            <div class="cds-kpi-sub">proceeding to evaluation</div>
+            @else
+                <!-- For other roles or guests, show minimal info -->
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="cds-kpi">
+                            <div class="cds-kpi-icon" style="background:rgba(16,185,129,0.12); color:#10b981;">
+                                <i class="bi bi-calendar-check-fill"></i>
+                            </div>
+                            <div>
+                                <div class="cds-kpi-val text-success">
+                                    @if($call->status === 'open' && $call->days_remaining)
+                                        {{ (int) $call->days_remaining }}d
+                                    @else
+                                        —
+                                    @endif
+                                </div>
+                                <div class="cds-kpi-label">
+                                    {{ $call->status === 'open' ? 'Days Remaining' : 'Window Closed' }}
+                                </div>
+                                <div class="cds-kpi-sub">Closes {{ $call->close_date ? $call->close_date->format('d M Y') : 'N/A' }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            @endif
         </div>
     </div>
 
     
     @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
-        <!-- PIPELINE STRIP (static) -->
+        <!-- PIPELINE STRIP (static) - Only visible to Super Admin -->
         <div class="cds-card mb-4">
             <div class="cds-card-header d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
@@ -400,42 +451,42 @@ new class extends Component
                 <div class="d-flex align-items-center gap-1 overflow-auto pb-1">
                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
                         <div class="cds-pipe-step cds-pipe-active">
-                            <div class="cds-pipe-num">210</div>
+                            <div class="cds-pipe-num">{{ $applicationsCount }}</div>
                             <div class="cds-pipe-name">Submitted</div>
                         </div>
                         <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
                     </div>
                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
                         <div class="cds-pipe-step cds-pipe-active">
-                            <div class="cds-pipe-num">145</div>
+                            <div class="cds-pipe-num">{{ $screenedCount }}</div>
                             <div class="cds-pipe-name">Screened</div>
                         </div>
                         <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
                     </div>
                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
                         <div class="cds-pipe-step cds-pipe-active">
-                            <div class="cds-pipe-num">98</div>
+                            <div class="cds-pipe-num">{{ $eligibleCount }}</div>
                             <div class="cds-pipe-name">Eligible</div>
                         </div>
                         <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
                     </div>
                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
                         <div class="cds-pipe-step cds-pipe-active">
-                            <div class="cds-pipe-num">60</div>
+                            <div class="cds-pipe-num">{{ $inReviewCount }}</div>
                             <div class="cds-pipe-name">Evaluated</div>
                         </div>
                         <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
                     </div>
                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
-                        <div class="cds-pipe-step cds-pipe-active">
-                            <div class="cds-pipe-num">20</div>
+                        <div class="cds-pipe-step {{ $shortlistedCount >= 20 ? 'cds-pipe-active' : 'cds-pipe-zero' }}">
+                            <div class="cds-pipe-num">{{ min(20, $shortlistedCount) }}</div>
                             <div class="cds-pipe-name">Top 20</div>
                         </div>
                         <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
                     </div>
                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
-                        <div class="cds-pipe-step cds-pipe-zero">
-                            <div class="cds-pipe-num">0</div>
+                        <div class="cds-pipe-step {{ $shortlistedCount >= 10 ? 'cds-pipe-active' : 'cds-pipe-zero' }}">
+                            <div class="cds-pipe-num">{{ min(10, $shortlistedCount) }}</div>
                             <div class="cds-pipe-name">Top 10</div>
                         </div>
                         <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>

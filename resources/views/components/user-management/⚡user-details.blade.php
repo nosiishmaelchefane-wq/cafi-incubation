@@ -3,6 +3,7 @@
 use Livewire\Component;
 use App\Models\User;
 use Illuminate\Support\Facades\Request;
+use Livewire\Attributes\On;
 
 new class extends Component {
     public $user;
@@ -21,6 +22,15 @@ new class extends Component {
         if ($id) {
             $this->user = User::with('roles', 'userable')->findOrFail($id);
         } 
+    }
+
+    #[On('user-updated')]
+    public function refreshUserData()
+    {
+        // Refresh the user data when user-updated event is received
+        if ($this->userId) {
+            $this->user = User::with('roles', 'userable')->findOrFail($this->userId);
+        }
     }
     
     public function getRoleNameProperty()
@@ -118,7 +128,7 @@ new class extends Component {
     public function getFormattedDateOfBirthProperty()
     {
         if ($this->user->userable && $this->user->isEntrepreneur()) {
-            return $this->user->userable->date_of_birth ?? 'Not provided';
+            return $this->user->userable->date_of_birth ? $this->user->userable->date_of_birth->format('d M Y') : 'Not provided';
         }
         return 'Not provided';
     }
@@ -126,18 +136,29 @@ new class extends Component {
     public function getFormattedGenderProperty()
     {
         if ($this->user->userable && $this->user->isEntrepreneur()) {
-            return $this->user->userable->gender ?? 'Not provided';
+            return ucfirst($this->user->userable->gender ?? 'Not provided');
         }
         return 'Not provided';
     }
     
-
+    public function getPersonalBioProperty()
+    {
+        return $this->user->bio ?? 'No personal bio provided';
+    }
+    
+    public function getCompanyBioProperty()
+    {
+        if ($this->user->userable && $this->user->isEntrepreneur()) {
+            return $this->user->userable->short_bio ?? 'No company bio provided';
+        }
+        return 'Not applicable';
+    }
     
     public function getOrganisationNameProperty()
     {
         if ($this->user->userable) {
             if ($this->user->isEntrepreneur()) {
-                return $this->user->userable->company_name ?? 'Individual Entrepreneur';
+                return $this->user->userable->organization_name ?? 'Individual Entrepreneur';
             }
             if ($this->user->isESO()) {
                 return $this->user->userable->organisation_name ?? 'Not specified';
@@ -234,7 +255,8 @@ new class extends Component {
     public function getYearsOfOperationProperty()
     {
         if ($this->user->userable && $this->user->isEntrepreneur()) {
-            return $this->user->userable->years_of_operation ?? 'Not specified';
+            $years = $this->user->userable->years_of_operation;
+            return $years ? $years . ' years' : 'Not specified';
         }
         return 'Not specified';
     }
@@ -547,7 +569,6 @@ new class extends Component {
 
                     <div class="card-body px-4 py-4">
                         <!-- TAB: Profile Details -->
-                        <!-- TAB: Profile Details -->
                         <div style="{{ $activeTab !== 'profile-details' ? 'display: none;' : '' }}">
                             @if($activeTab === 'profile-details')
                             <div class="row g-4">
@@ -567,6 +588,10 @@ new class extends Component {
                                         <span class="small">{{ $this->user->username ?? 'Not set' }}</span>
                                     </div>
                                     <div class="info-row d-flex align-items-start">
+                                        <span class="info-label text-muted">Phone Number</span>
+                                        <span class="small">{{ $this->user->phone ?? 'Not set' }}</span>
+                                    </div>
+                                    <div class="info-row d-flex align-items-start">
                                         <span class="info-label text-muted">Gender</span>
                                         <span class="small">{{ $this->formattedGender }}</span>
                                     </div>
@@ -575,25 +600,17 @@ new class extends Component {
                                         <span class="small">{{ $this->formattedDateOfBirth }}</span>
                                     </div>
                                     <div class="info-row d-flex align-items-start">
-                                        <span class="info-label text-muted">Bio</span>
-                                        <span class="small">{{ $this->user->bio ?? 'No bio provided' }}</span>
+                                        <span class="info-label text-muted">Personal Bio</span>
+                                        <span class="small">{{ $this->personalBio }}</span>
                                     </div>
                                 </div>
 
-                                <!-- Organisation & System Info -->
+                                <!-- Business Information -->
                                 <div class="col-12 col-md-6">
-                                    <p class="section-label mb-3">Organisation & System</p>
-                                    <div class="info-row d-flex align-items-start">
-                                        <span class="info-label text-muted">Organisation</span>
-                                        <span class="small">{{ $this->organisationName }}</span>
-                                    </div>
+                                    <p class="section-label mb-3">Business Information</p>
                                     <div class="info-row d-flex align-items-start">
                                         <span class="info-label text-muted">Organization Name</span>
                                         <span class="small">{{ $this->organizationName }}</span>
-                                    </div>
-                                    <div class="info-row d-flex align-items-start">
-                                        <span class="info-label text-muted">Job Title</span>
-                                        <span class="small">{{ $this->jobTitle }}</span>
                                     </div>
                                     <div class="info-row d-flex align-items-start">
                                         <span class="info-label text-muted">Industry/Interest</span>
@@ -608,9 +625,18 @@ new class extends Component {
                                         <span class="small">{{ $this->areaOfOperation }}</span>
                                     </div>
                                     <div class="info-row d-flex align-items-start">
-                                        <span class="info-label text-muted">Location</span>
-                                        <span class="small">{{ $this->location }}</span>
+                                        <span class="info-label text-muted">Country</span>
+                                        <span class="small">{{ $this->country }}</span>
                                     </div>
+                                    <div class="info-row d-flex align-items-start">
+                                        <span class="info-label text-muted">Company Bio</span>
+                                        <span class="small">{{ $this->companyBio }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- System Information -->
+                                <div class="col-12 col-md-6">
+                                    <p class="section-label mb-3">System Information</p>
                                     <div class="info-row d-flex align-items-start">
                                         <span class="info-label text-muted">User ID</span>
                                         <span class="small text-muted">{{ $this->userId }}</span>
@@ -626,20 +652,23 @@ new class extends Component {
                                 </div>
 
                                 <!-- Address Information -->
-                                <div class="col-12">
-                                    <hr class="my-1">
-                                    <p class="section-label mb-3 mt-3">Address Information</p>
-                                    <div class="row g-3">
-                                        <div class="col-12 col-sm-6">
-                                            <div class="info-row d-flex align-items-start">
-                                                <span class="info-label text-muted">Country</span>
-                                                <span class="small">{{ $this->country }}</span>
-                                            </div>
-                                            <div class="info-row d-flex align-items-start">
-                                                <span class="info-label text-muted">Areaf Of Operation</span>
-                                                <span class="small">{{ $this->city }}</span>
-                                            </div>
-                                        </div>
+                                <div class="col-12 col-md-6">
+                                    <p class="section-label mb-3">Address Information</p>
+                                    <div class="info-row d-flex align-items-start">
+                                        <span class="info-label text-muted">Street Address</span>
+                                        <span class="small">{{ $this->streetAddress }}</span>
+                                    </div>
+                                    <div class="info-row d-flex align-items-start">
+                                        <span class="info-label text-muted">City/Area</span>
+                                        <span class="small">{{ $this->city }}</span>
+                                    </div>
+                                    <div class="info-row d-flex align-items-start">
+                                        <span class="info-label text-muted">Province</span>
+                                        <span class="small">{{ $this->province }}</span>
+                                    </div>
+                                    <div class="info-row d-flex align-items-start">
+                                        <span class="info-label text-muted">Postal Code</span>
+                                        <span class="small">{{ $this->postalCode }}</span>
                                     </div>
                                 </div>
 
@@ -764,70 +793,65 @@ new class extends Component {
                         </div>
 
                         <!-- TAB: Applications -->
-                        <!-- TAB: Applications - Card Layout -->
-<div style="{{ $activeTab !== 'applications' ? 'display: none;' : '' }}">
-    @if($activeTab === 'applications')
-        @php
-            $applications = \App\Models\IncubationApplication::where('user_id', $this->user->id)
-                ->with('call')
-                ->orderBy('created_at', 'desc')
-                ->get();
-        @endphp
-        
-        @if($applications->count() > 0)
-            <div class="row g-3">
-                @foreach($applications as $app)
-                <div class="col-12 col-md-6 col-xl-4">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="badge bg-{{ $statusColors[$app->status] ?? 'secondary' }} bg-opacity-10 text-{{ $statusColors[$app->status] ?? 'secondary' }} rounded-pill px-2 py-1 small">
-                                    {{ ucfirst($app->status ?? 'Pending') }}
-                                </span>
-                                <span class="text-muted small">{{ $app->application_number }}</span>
-                            </div>
-                            
-                            <h6 class="fw-bold mb-1">{{ $app->company_name }}</h6>
-                            <p class="text-muted small mb-2">{{ $app->call->title ?? 'N/A' }}</p>
-                            
-                            <div class="d-flex align-items-center gap-3 mb-3">
-                                <div class="d-flex align-items-center gap-1">
-                                    <i class="bi bi-calendar3 text-muted" style="font-size: 0.7rem;"></i>
-                                    <span class="small text-muted">{{ $app->submitted_at ? $app->submitted_at->format('d M Y') : '—' }}</span>
-                                </div>
-                                <div class="d-flex align-items-center gap-1">
-                                    <i class="bi bi-building text-muted" style="font-size: 0.7rem;"></i>
-                                    <span class="small text-muted">{{ $app->company_type ?? 'N/A' }}</span>
-                                </div>
-                            </div>
-                            
-                            <div class="d-flex gap-2">
-                                <a href="{{ route('incubation.show', $app->id) }}" 
-                                   class="btn btn-sm btn-outline-primary flex-grow-1">
-                                    <i class="bi bi-eye me-1"></i> View Details
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                @endforeach
-            </div>
-        @else
-            <div class="text-center py-5">
-                <i class="bi bi-file-earmark-text fs-1 text-muted opacity-50"></i>
-                <p class="text-muted mt-3 mb-0">No applications found for this user.</p>
-            </div>
-        @endif
-    @endif
-</div>
-
-                        <!-- TAB: Permissions -->
-                        <div style="{{ $activeTab !== 'permissions' ? 'display: none;' : '' }}">
-                            @if($activeTab === 'permissions')
-                            <div class="text-center py-5">
-                                <i class="bi bi-shield-lock fs-1 text-muted opacity-50"></i>
-                                <p class="text-muted mt-3 mb-0">Permissions section coming soon...</p>
-                            </div>
+                        <div style="{{ $activeTab !== 'applications' ? 'display: none;' : '' }}">
+                            @if($activeTab === 'applications')
+                                @php
+                                    $applications = \App\Models\IncubationApplication::where('user_id', $this->user->id)
+                                        ->with('call')
+                                        ->orderBy('created_at', 'desc')
+                                        ->get();
+                                    $statusColors = [
+                                        'pending' => 'warning',
+                                        'approved' => 'success',
+                                        'rejected' => 'danger',
+                                        'under_review' => 'info',
+                                    ];
+                                @endphp
+                                
+                                @if($applications->count() > 0)
+                                    <div class="row g-3">
+                                        @foreach($applications as $app)
+                                        <div class="col-12 col-md-6 col-xl-4">
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-body p-3">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <span class="badge bg-{{ $statusColors[$app->status] ?? 'secondary' }} bg-opacity-10 text-{{ $statusColors[$app->status] ?? 'secondary' }} rounded-pill px-2 py-1 small">
+                                                            {{ ucfirst($app->status ?? 'Pending') }}
+                                                        </span>
+                                                        <span class="text-muted small">{{ $app->application_number }}</span>
+                                                    </div>
+                                                    
+                                                    <h6 class="fw-bold mb-1">{{ $app->company_name }}</h6>
+                                                    <p class="text-muted small mb-2">{{ $app->call->title ?? 'N/A' }}</p>
+                                                    
+                                                    <div class="d-flex align-items-center gap-3 mb-3">
+                                                        <div class="d-flex align-items-center gap-1">
+                                                            <i class="bi bi-calendar3 text-muted" style="font-size: 0.7rem;"></i>
+                                                            <span class="small text-muted">{{ $app->submitted_at ? $app->submitted_at->format('d M Y') : '—' }}</span>
+                                                        </div>
+                                                        <div class="d-flex align-items-center gap-1">
+                                                            <i class="bi bi-building text-muted" style="font-size: 0.7rem;"></i>
+                                                            <span class="small text-muted">{{ $app->company_type ?? 'N/A' }}</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="d-flex gap-2">
+                                                        <a href="{{ route('incubation.show', $app->id) }}" 
+                                                           class="btn btn-sm btn-outline-primary flex-grow-1">
+                                                            <i class="bi bi-eye me-1"></i> View Details
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="text-center py-5">
+                                        <i class="bi bi-file-earmark-text fs-1 text-muted opacity-50"></i>
+                                        <p class="text-muted mt-3 mb-0">No applications found for this user.</p>
+                                    </div>
+                                @endif
                             @endif
                         </div>
                     </div>

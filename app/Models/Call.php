@@ -47,6 +47,11 @@ class Call extends Model
     protected static function booted()
     {
         static::retrieved(function ($call) {
+            // Auto-open the call if it's published and open date has been reached
+            if ($call->status === 'published' && $call->open_date && $call->open_date <= Carbon::now()) {
+                $call->open();
+            }
+            
             // Auto-close the call if it's open and the close date has passed
             if ($call->status === 'open' && $call->close_date && $call->close_date <= Carbon::now()) {
                 $call->close();
@@ -69,8 +74,10 @@ class Call extends Model
 
     public function open(): void
     {
-        $this->status = 'open';
-        $this->save();
+        if ($this->status !== 'open') {
+            $this->status = 'open';
+            $this->save();
+        }
     }
 
     public function close(): void
@@ -97,6 +104,25 @@ class Call extends Model
     {
         return $this->status === 'open' && 
                (!$this->close_date || $this->close_date > Carbon::now());
+    }
+
+    /**
+     * Check if the call is published but not yet open
+     */
+    public function isPublished(): bool
+    {
+        return $this->status === 'published';
+    }
+
+    /**
+     * Get days remaining until open date
+     */
+    public function getDaysUntilOpenAttribute(): ?int
+    {
+        if ($this->status === 'published' && $this->open_date && $this->open_date > Carbon::now()) {
+            return (int) Carbon::now()->diffInDays($this->open_date, false);
+        }
+        return null;
     }
 
     /**

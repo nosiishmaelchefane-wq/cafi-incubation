@@ -2,6 +2,7 @@
 
 use Livewire\Component;
 use App\Models\IncubationApplication;
+use Livewire\Attributes\On;
 
 new class extends Component
 {

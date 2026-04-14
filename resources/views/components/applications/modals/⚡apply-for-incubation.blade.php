@@ -259,6 +259,7 @@ new class extends Component
             
             $this->resetForm();
             $this->dispatch('close-application-modal');
+            $this->dispatch('application-updated');
             $this->dispatch('notify', type: 'success', message: 'Application updated successfully!');
             
         } else {
@@ -338,6 +339,7 @@ new class extends Component
             
             $this->resetForm();
             $this->dispatch('close-application-modal');
+            $this->dispatch('application-updated');
             $this->dispatch('notify', type: 'success', message: 'Application submitted successfully! Application Number: ' . $application->application_number);
         }
     }

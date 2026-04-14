@@ -4,6 +4,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Call;
 use App\Models\IncubationApplication;
+use Livewire\Attributes\On;
 
 new class extends Component
 {
@@ -45,6 +46,14 @@ new class extends Component
             $this->loadCallData();
              $this->loadApplications();
         }
+    }
+    
+    #[On('refresh-calls')]
+    public function refreshData()
+    {
+   
+        $this->loadCallData();
+        $this->loadApplications();
     }
     
     public function loadCallData()

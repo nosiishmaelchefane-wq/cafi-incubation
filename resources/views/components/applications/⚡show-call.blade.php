@@ -239,15 +239,17 @@ new class extends Component
    
 
     <!-- Breadcrumb -->
+    <!-- Breadcrumb -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb mb-0 small">
             <li class="breadcrumb-item">
-                <a href="" class="text-decoration-none text-muted">
-                    <i class="bi bi-house-fill me-1" style="font-size:0.7rem;"></i> Home
+                <a href="{{ route('calls.index') }}" class="text-decoration-none text-muted">
+                    <i class="bi bi-house-fill me-1" style="font-size:0.7rem;"></i> Calls
                 </a>
             </li>
-            <li class="breadcrumb-item"><a href="" class="text-decoration-none text-muted">Calls</a></li>
-            <li class="breadcrumb-item active text-dark fw-medium">{{ $call->title ?? 'Loading...' }}</li>
+            <li class="breadcrumb-item active text-dark fw-medium">
+                {{ $call->title ?? 'Loading...' }}
+            </li>
         </ol>
     </nav>
 

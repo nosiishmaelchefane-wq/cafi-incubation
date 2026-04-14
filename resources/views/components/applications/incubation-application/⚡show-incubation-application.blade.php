@@ -399,6 +399,7 @@ new class extends Component
                     <div class="app-card-body">
                         <div class="row g-0">
                             <!-- Tax Clearance Certificate -->
+                           <!-- Tax Clearance Certificate -->
                             <div class="col-12 col-md-6">
                                 <div class="app-field">
                                     <div class="app-field-label">
@@ -409,13 +410,17 @@ new class extends Component
                                             $documents = $this->entrepreneurDocuments;
                                         @endphp
 
-                                        @if($documents['tax_clearance'])
-                                            <a href="{{ Storage::url($documents['tax_clearance']) }}" target="_blank">View Tax Clearance</a>
+                                        @if(isset($documents['tax_clearance']) && $documents['tax_clearance'])
+                                            <a href="{{ Storage::url($documents['tax_clearance']) }}" target="_blank" class="btn btn-sm btn-outline-primary mt-1">
+                                                <i class="bi bi-eye me-1"></i> View Document
+                                            </a>
+                                            <span class="text-muted small d-block mt-1">{{ basename($documents['tax_clearance']) }}</span>
+                                        @else
+                                            <span class="text-muted">— Not uploaded —</span>
                                         @endif
                                     </div>
                                 </div>
                             </div>
-
                             <!-- Trader's License -->
                             <div class="col-12 col-md-6">
                                 <div class="app-field">

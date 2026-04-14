@@ -2,6 +2,7 @@
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\On;
 
 new class extends Component
 {
@@ -43,6 +44,13 @@ new class extends Component
         $this->filterStatus = '';
         $this->filterCohort = '';
         $this->filterYear = '';
+        $this->resetPage();
+    }
+
+
+    #[On('refresh-calls')]
+    public function refreshData()
+    {
         $this->resetPage();
     }
     

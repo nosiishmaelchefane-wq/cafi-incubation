@@ -198,11 +198,9 @@ new class extends Component
     public function submitApplication()
     {
         $this->validate();
+       
         
-        if ($this->call->status !== 'open' && !$this->isEditMode) {
-            $this->dispatch('notify', type: 'error', message: 'This call is no longer accepting applications');
-            return;
-        }
+        
         
         if ($this->isEditMode) {
             // Update existing application
@@ -264,7 +262,7 @@ new class extends Component
             $this->dispatch('notify', type: 'success', message: 'Application updated successfully!');
             
         } else {
-            // Create new application (existing code)
+            // Create new application
             $existingApplication = IncubationApplication::where('call_id', $this->id)
                 ->where('user_id', Auth::id())
                 ->first();

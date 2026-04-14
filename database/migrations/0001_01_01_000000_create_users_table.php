@@ -22,7 +22,7 @@ return new class extends Migration
             $table->rememberToken();
             
             // Profile fields
-            $table->string('username')->nullable()->unique();
+            $table->string('username');
             $table->string('phone')->nullable();
             $table->string('profile_photo')->nullable();
             $table->text('bio')->nullable();

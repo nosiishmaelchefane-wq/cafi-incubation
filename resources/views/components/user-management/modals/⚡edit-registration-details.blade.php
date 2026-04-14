@@ -22,13 +22,20 @@ new class extends Component {
     public $profile_image = null;
     public $existing_profile_photo = null;
     
+    // Contact Information
+    public $email = '';
+    public $phone = '';
+    
+    // User Bio (Personal)
+    public $user_bio = '';
+    
     // Business Information
     public $country = 'Lesotho';
     public $area_of_operation = '';
     public $industry_or_interest = '';
     public $years_of_operation = '';
     public $organization_name = '';
-    public $short_bio = '';
+    public $short_bio = ''; // Company bio
     
     // Documents
     public $tax_clearance = null;
@@ -70,6 +77,13 @@ new class extends Component {
             $this->date_of_birth = $this->entrepreneur->date_of_birth ? $this->entrepreneur->date_of_birth->format('Y-m-d') : '';
             $this->existing_profile_photo = $this->user->profile_photo;
             
+            // Load contact information
+            $this->email = $this->user->email ?? '';
+            $this->phone = $this->user->phone ?? '';
+            
+            // Load user personal bio
+            $this->user_bio = $this->user->bio ?? '';
+            
             // Load business data
             $this->country = $this->entrepreneur->country ?? 'Lesotho';
             $this->area_of_operation = $this->entrepreneur->area_of_operation ?? '';
@@ -89,8 +103,8 @@ new class extends Component {
         $this->showModal = false;
         $this->resetErrorBag();
         $this->reset(['first_name', 'surname', 'gender', 'date_of_birth', 'profile_image',
-            'country', 'area_of_operation', 'industry_or_interest', 'years_of_operation',
-            'organization_name', 'short_bio', 'tax_clearance', 'traders_license']);
+            'email', 'phone', 'user_bio', 'country', 'area_of_operation', 'industry_or_interest', 
+            'years_of_operation', 'organization_name', 'short_bio', 'tax_clearance', 'traders_license']);
     }
     
     public function updateRegistration()
@@ -100,9 +114,13 @@ new class extends Component {
             'surname' => 'required|string|max:255',
             'gender' => 'required',
             'date_of_birth' => 'required|date',
+            'email' => 'required|email|unique:users,email,' . $this->userId,
+            'phone' => 'required|string|max:20',
+            'user_bio' => 'nullable|string|max:1000',
             'country' => 'required',
             'area_of_operation' => 'required|string|max:255',
             'industry_or_interest' => 'required',
+            'short_bio' => 'nullable|string|max:1000',
             'profile_image' => 'nullable|image|max:2048',
             'tax_clearance' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'traders_license' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
@@ -117,6 +135,12 @@ new class extends Component {
                 $profileImagePath = $this->profile_image->store('profile-images', 'public');
                 $this->user->profile_photo = $profileImagePath;
             }
+            
+            // Update user contact information and personal bio
+            $this->user->email = $this->email;
+            $this->user->phone = $this->phone;
+            $this->user->bio = $this->user_bio;
+            $this->user->save();
             
             // Handle tax clearance upload
             if ($this->tax_clearance) {
@@ -135,9 +159,6 @@ new class extends Component {
                 $licensePath = $this->traders_license->store('documents/traders-license', 'public');
                 $this->entrepreneur->traders_license_path = $licensePath;
             }
-            
-            // Update user
-            $this->user->save();
             
             // Update entrepreneur
             $this->entrepreneur->update([
@@ -213,6 +234,12 @@ new class extends Component {
                                 @error('date_of_birth') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>
                             <div class="col-12">
+                                <label class="form-label fw-semibold small">Personal Bio</label>
+                                <textarea class="form-control @error('user_bio') is-invalid @enderror" wire:model="user_bio" rows="3" placeholder="Tell us about yourself..."></textarea>
+                                <small class="text-muted">Max 1000 characters. Current: {{ strlen($user_bio) }}/1000</small>
+                                @error('user_bio') <span class="text-danger small">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-12">
                                 <label class="form-label fw-semibold small">Profile Image</label>
                                 <input type="file" class="form-control @error('profile_image') is-invalid @enderror" wire:model="profile_image" accept="image/*">
                                 <small class="text-muted">Max size: 2MB. Accepted: JPG, PNG, GIF</small>
@@ -268,9 +295,9 @@ new class extends Component {
                                 <input type="text" class="form-control" wire:model="organization_name" placeholder="Your Business Name">
                             </div>
                             <div class="col-12">
-                                <label class="form-label fw-semibold small">Short Profile or Bio</label>
+                                <label class="form-label fw-semibold small">Short Profile or Business Description</label>
                                 <textarea class="form-control" wire:model="short_bio" rows="3" placeholder="Tell us about yourself and your business..."></textarea>
-                                <small class="text-muted">Max 1000 characters</small>
+                                <small class="text-muted">Max 1000 characters. Current: {{ strlen($short_bio) }}/1000</small>
                             </div>
 
                             <!-- Required Documents -->
@@ -288,6 +315,12 @@ new class extends Component {
                                         <small class="text-success">✓ Current file: {{ basename($existing_tax_clearance) }}</small>
                                     </div>
                                 @endif
+                                
+                                @if($tax_clearance)
+                                    <div class="mt-1">
+                                        <small class="text-info">New file selected: {{ $tax_clearance->getClientOriginalName() }}</small>
+                                    </div>
+                                @endif
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold small">Trader's License</label>
@@ -298,6 +331,12 @@ new class extends Component {
                                 @if($existing_traders_license && !$traders_license)
                                     <div class="mt-1">
                                         <small class="text-success">✓ Current file: {{ basename($existing_traders_license) }}</small>
+                                    </div>
+                                @endif
+                                
+                                @if($traders_license)
+                                    <div class="mt-1">
+                                        <small class="text-info">New file selected: {{ $traders_license->getClientOriginalName() }}</small>
                                     </div>
                                 @endif
                             </div>

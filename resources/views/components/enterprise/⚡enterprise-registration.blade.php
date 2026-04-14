@@ -1,6 +1,5 @@
 <?php
 
-
 use App\Models\User;
 use App\Models\Entrepreneur;
 use Livewire\Component;
@@ -17,6 +16,9 @@ new class extends Component {
     // Account Information
     #[Rule('required|email|unique:users,email')]
     public string $email = '';
+    
+    #[Rule('required|string|max:20')]
+    public string $phone = '';
     
     #[Rule('required|min:10|confirmed')]
     public string $password = '';
@@ -161,6 +163,8 @@ new class extends Component {
     public function register()
     {
         $this->validate();
+        
+        // Generate username from first name and surname (allow duplicates)
         $username = $this->first_name . ' ' . $this->surname;
         
         try {
@@ -196,6 +200,7 @@ new class extends Component {
             // Create user account linked to entrepreneur
             $user = User::create([
                 'email' => $this->email,
+                'phone' => $this->phone,
                 'password' => Hash::make($this->password),
                 'profile_photo' => $profileImagePath,
                 'username' => $username,
@@ -212,8 +217,19 @@ new class extends Component {
             $this->dispatch('notify', type: 'success', message: 'Your application has been submitted successfully! A confirmation email has been sent to your email address. Your account will be reviewed by an administrator.');
             return $this->redirect('/', navigate: true);
             
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Check for duplicate entry error (1062) - only for email now
+            if ($e->errorInfo[1] == 1062) {
+                if (str_contains($e->getMessage(), 'users_email_unique')) {
+                    $this->dispatch('notify', type: 'error', message: 'Registration failed. The email address "' . $this->email . '" is already registered. Please use a different email or login.');
+                } else {
+                    $this->dispatch('notify', type: 'error', message: 'Registration failed. Duplicate entry detected. Please check your information and try again.');
+                }
+            } else {
+                $this->dispatch('notify', type: 'error', message: 'Registration failed. Please try again. Error: ' . $e->getMessage());
+            }
         } catch (\Exception $e) {
-            $this->addError('registration', 'Registration failed. Please try again. ' . $e->getMessage());
+            $this->dispatch('notify', type: 'error', message: 'Registration failed. Please try again. Error: ' . $e->getMessage());
         }
     }
 
@@ -239,6 +255,7 @@ new class extends Component {
         return match($step) {
             1 => [
                 'email' => 'required|email|unique:users,email',
+                'phone' => 'required|string|max:20',
                 'password' => 'required|min:10|confirmed',
                 'terms' => 'accepted',
             ],
@@ -281,7 +298,6 @@ new class extends Component {
         return (($this->currentStep - 1) / max($this->totalSteps - 1, 1)) * 100;
     }
 };
-
 ?>
 
 <div class="form-view visible scrollable-view" id="register-view" x-data="{ step: @entangle('currentStep') }">
@@ -339,11 +355,18 @@ new class extends Component {
         @csrf
 
         {{-- Step 1: Account Information --}}
+        {{-- Step 1: Account Information --}}
         <div x-show="step === 1" x-cloak x-transition:enter.duration.300ms>
             <div class="field">
                 <label for="email">Email Address <span style="color: var(--green);">*</span></label>
                 <input wire:model="email" id="email" type="email" placeholder="you@example.com" autocomplete="email">
                 @error('email') <span class="error">{{ $message }}</span> @enderror
+            </div>
+            
+            <div class="field">
+                <label for="phone">Phone Number <span style="color: var(--green);">*</span></label>
+                <input wire:model="phone" id="phone" type="tel" placeholder="+266 1234 5678" autocomplete="tel">
+                @error('phone') <span class="error">{{ $message }}</span> @enderror
             </div>
             
             <div class="field-row">
@@ -531,6 +554,7 @@ new class extends Component {
             <button type="button" onclick="showLogin()">Sign in</button>
         </p>
     </div>
+    <livewire:notify />
 </div>
 
 <style>

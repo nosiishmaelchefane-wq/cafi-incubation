@@ -320,16 +320,19 @@ new class extends Component
         </div>
 
         {{-- TABLE VIEW --}}
-        @if($view === 'table')
+        {{-- TABLE VIEW --}}
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 small">
                     <thead class="table-light">
+                        <tr>
                             <th class="px-4 py-3">Call Title</th>
                             <th class="py-3">Cohort</th>
                             <th class="py-3">Open Date</th>
                             <th class="py-3">Close Date</th>
-                            <th class="py-3 text-center">Applications</th>
+                            @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
+                                <th class="py-3 text-center">Applications</th>
+                            @endif
                             <th class="py-3">Status</th>
                             <th class="py-3 text-center">Actions</th>
                         </tr>
@@ -346,9 +349,11 @@ new class extends Component
                             </td>
                             <td>{{ $call->open_date ? $call->open_date->format('d M Y') : '—' }}</td>
                             <td>{{ $call->close_date ? $call->close_date->format('d M Y') : '—' }}</td>
-                            <td class="text-center">
-                                 <span class="fw-semibold">{{ $call->applications_count }}</span>
-                            </td>
+                            @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
+                                <td class="text-center">
+                                    <span class="fw-semibold">{{ $call->applications_count }}</span>
+                                </td>
+                            @endif
                             <td>
                                 @php
                                     $statusColors = [
@@ -363,7 +368,7 @@ new class extends Component
                                     {{ ucfirst($call->status) }}
                                 </span>
                             </td>
-                           <td class="text-center">
+                            <td class="text-center">
                                 <div class="d-flex justify-content-center gap-1">
                                     
                                     <!-- View (visible to everyone) -->
@@ -413,7 +418,7 @@ new class extends Component
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-5">
+                            <td colspan="{{ auth()->check() && auth()->user()->hasRole('Super Administrator') ? '7' : '6' }}" class="text-center text-muted py-5">
                                 <i class="bi bi-inbox fs-3 d-block mb-2 opacity-50"></i>
                                 No calls found matching your filters.
                             </td>
@@ -426,7 +431,7 @@ new class extends Component
                 {{ $this->calls->links() }}
             </div>
         </div>
-        @endif
+            
     </div>
 </div>
 

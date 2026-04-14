@@ -748,11 +748,10 @@ new class extends Component
                                 </a>
 
                             @endif
-                            @if(auth()->check() && auth()->user()->hasRole('Applicant'))
+                            @if(auth()->check() && auth()->user()->hasRole('Applicant') && $application->status === 'Draft')
                                 <a href="#" 
                                 class="btn app-action-link text-start"
                                 wire:click.prevent="openEditModal({{ $application->id }})">
-                                
                                     <i class="bi bi-pencil-fill me-2 text-info"></i>
                                     <span>Edit Application</span>
                                     <i class="bi bi-chevron-right ms-auto text-muted"></i>
@@ -761,7 +760,7 @@ new class extends Component
                             <hr class="my-1">
                            @if(auth()->check() && auth()->user()->hasAnyRole(['Super Administrator', 'Applicant']))
 
-                                @if($application->status === 'pending')
+                                @if($application->status === 'draft')
                                     <button 
                                         class="btn app-action-link app-action-danger text-start w-100"
                                         wire:click="deleteApplication({{ $application->id }})"
@@ -779,7 +778,7 @@ new class extends Component
                                         title="Only pending applications can be deleted">
                                         
                                         <i class="bi bi-trash3-fill me-2 text-secondary"></i>
-                                        <span>Delete Application (Only pending)</span>
+                                        <span>Delete Application (Only Draft)</span>
                                         <i class="bi bi-chevron-right ms-auto text-muted"></i>
                                     </button>
                                 @endif

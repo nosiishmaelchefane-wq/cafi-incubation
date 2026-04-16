@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\DB;
 use App\Rules\CallValidationRules;
 use Livewire\Attributes\On; 
 use App\Models\Cohort;
+use App\Models\Call;
 
 new class extends Component
 {
@@ -27,6 +28,8 @@ new class extends Component
     
     // Cohort validation
     public $cohortExists = false;
+    public $cohortHasCall = false;
+    public $existingCallInfo = null;
     public $cohortSuggestion = null;
     public $latestCohort = null;
     
@@ -56,6 +59,7 @@ new class extends Component
         if ($this->latestCohort && empty($this->cohort)) {
             $this->cohort = (string)$this->latestCohort->cohort_number;
             $this->checkCohortExists();
+            $this->checkCohortHasCall();
         }
     }
 
@@ -68,7 +72,7 @@ new class extends Component
     #[On('edit-call')]
     public function edit($id)
     {
-        $call = \App\Models\Call::findOrFail($id);
+        $call = Call::findOrFail($id);
 
         $this->callId = $call->id;
         $this->title = $call->title;
@@ -90,6 +94,7 @@ new class extends Component
         
         // Check if cohort exists
         $this->checkCohortExists();
+        $this->checkCohortHasCall();
 
         $this->isEditMode = true;
 
@@ -115,6 +120,8 @@ new class extends Component
         $this->duration_months = '6';
         $this->allow_late_submissions = false;
         $this->cohortExists = false;
+        $this->cohortHasCall = false;
+        $this->existingCallInfo = null;
         $this->cohortSuggestion = null;
         
         // Reset to latest cohort
@@ -157,6 +164,40 @@ new class extends Component
         }
     }
     
+    // Check if cohort already has a call linked
+    public function checkCohortHasCall()
+    {
+        if (empty($this->cohort) || !$this->cohortExists) {
+            $this->cohortHasCall = false;
+            $this->existingCallInfo = null;
+            return;
+        }
+        
+        // Find existing call for this cohort
+        $existingCall = Call::where('cohort', $this->cohort);
+        
+        // If in edit mode, exclude the current call from check
+        if ($this->isEditMode && $this->callId) {
+            $existingCall = $existingCall->where('id', '!=', $this->callId);
+        }
+        
+        $existingCall = $existingCall->first();
+        
+        if ($existingCall) {
+            $this->cohortHasCall = true;
+            $this->existingCallInfo = [
+                'id' => $existingCall->id,
+                'title' => $existingCall->title,
+                'status' => $existingCall->status,
+                'open_date' => $existingCall->open_date ? $existingCall->open_date->format('d M Y') : 'N/A',
+                'close_date' => $existingCall->close_date ? $existingCall->close_date->format('d M Y') : 'N/A',
+            ];
+        } else {
+            $this->cohortHasCall = false;
+            $this->existingCallInfo = null;
+        }
+    }
+    
     // Get cohort details for display
     public function getCohortDetailsProperty()
     {
@@ -189,15 +230,35 @@ new class extends Component
             return;
         }
         
+        // Check if cohort already has a call (for new calls)
+        if (!$this->isEditMode) {
+            $existingCall = Call::where('cohort', $this->cohort)->first();
+            if ($existingCall) {
+                $this->addError('cohort', 'Cohort ' . $this->cohort . ' already has an existing call: "' . $existingCall->title . '". Only one call is allowed per cohort.');
+                return;
+            }
+        } else {
+            // For edit mode, check if cohort is being changed and new cohort already has a call
+            $originalCall = Call::find($this->callId);
+            if ($originalCall && $originalCall->cohort != $this->cohort) {
+                $existingCall = Call::where('cohort', $this->cohort)
+                    ->where('id', '!=', $this->callId)
+                    ->first();
+                if ($existingCall) {
+                    $this->addError('cohort', 'Cohort ' . $this->cohort . ' already has an existing call: "' . $existingCall->title . '". Cannot reassign to this cohort.');
+                    return;
+                }
+            }
+        }
+        
         $this->validate();
 
         DB::beginTransaction();
 
         try {
-
             if ($this->isEditMode) {
                 // UPDATE
-                $call = \App\Models\Call::findOrFail($this->callId);
+                $call = Call::findOrFail($this->callId);
 
                 $call->update([
                     'title' => $this->title,
@@ -218,7 +279,7 @@ new class extends Component
                 $message = 'Call updated successfully!';
             } else {
                 // CREATE
-                \App\Models\Call::create([
+                Call::create([
                     'title' => $this->title,
                     'cohort' => $this->cohort,
                     'target_applications' => $this->target_applications ?? 200,
@@ -302,8 +363,9 @@ new class extends Component
                                 
                                 <input type="text" 
                                     class="form-control @error('cohort') is-invalid @enderror"
-                                    wire:model="cohort"
-                                    wire:keyup="checkCohortExists"
+                                    wire:model.live="cohort"
+                                    wire:blur="checkCohortExists"
+                                    wire:keyup="checkCohortHasCall"
                                     placeholder="Enter Cohort Number (e.g., 4)">
                                 
                                 @error('cohort') 
@@ -335,6 +397,35 @@ new class extends Component
                                                 <i class="bi bi-plus-circle me-1"></i>
                                                 + Register Cohort {{ $cohort }} now
                                             </a>
+                                        </div>
+                                    </div>
+                                @endif
+                                
+                                <!-- Cohort has existing call warning -->
+                                @if(!empty($cohort) && $cohortExists && $cohortHasCall && !$isEditMode)
+                                    <div class="mt-2 p-2 bg-danger bg-opacity-10 rounded text-danger small">
+                                        <i class="bi bi-exclamation-octagon-fill me-1"></i>
+                                        ⚠️ Cohort {{ $cohort }} already has an existing call!
+                                        <div class="mt-1">
+                                            <strong>Existing call:</strong> {{ $existingCallInfo['title'] }}
+                                            <br>
+                                            <small>Status: {{ ucfirst($existingCallInfo['status']) }} | 
+                                                   Open: {{ $existingCallInfo['open_date'] }} | 
+                                                   Close: {{ $existingCallInfo['close_date'] }}</small>
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="text-danger">Only one call is allowed per cohort.</span>
+                                        </div>
+                                    </div>
+                                @elseif(!empty($cohort) && $cohortExists && $cohortHasCall && $isEditMode && $existingCallInfo && $existingCallInfo['id'] != $callId)
+                                    <div class="mt-2 p-2 bg-warning bg-opacity-10 rounded text-warning small">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                        ⚠️ Cohort {{ $cohort }} already has another call!
+                                        <div class="mt-1">
+                                            <strong>Existing call:</strong> {{ $existingCallInfo['title'] }}
+                                        </div>
+                                        <div class="mt-2">
+                                            <span class="text-warning">Changing to this cohort would create a duplicate. Only one call is allowed per cohort.</span>
                                         </div>
                                     </div>
                                 @endif
@@ -461,7 +552,7 @@ new class extends Component
                         Cancel
                     </button>
                     <button type="button" class="btn btn-primary" wire:click="saveCall" wire:loading.attr="disabled"
-                            @if(!empty($cohort) && !$cohortExists) disabled @endif>
+                            @if((!empty($cohort) && !$cohortExists) || (!empty($cohort) && $cohortHasCall && !$isEditMode) || (!empty($cohort) && $cohortHasCall && $isEditMode && $existingCallInfo && $existingCallInfo['id'] != $callId)) disabled @endif>
                         <span wire:loading.remove>{{ $isEditMode ? 'Update Call' : 'Create Call' }}</span>
                         <span wire:loading>
                             <span class="spinner-border spinner-border-sm me-1"></span> Saving...

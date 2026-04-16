@@ -24,6 +24,4 @@
 
     <livewire:applications.calls-index />
     <livewire:applications.modals.calls-for-application />
-    <livewire:notify />
-</div>
 </x-app-layout> 

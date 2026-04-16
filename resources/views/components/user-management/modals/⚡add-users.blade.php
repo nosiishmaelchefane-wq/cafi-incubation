@@ -20,7 +20,6 @@ new class extends Component {
     #[Rule('nullable|string|max:20')]
     public $phone = '';
 
-
     #[Rule('required|exists:roles,name')]
     public $role = '';
 
@@ -53,15 +52,16 @@ new class extends Component {
     }
 
     /**
-     * Open the edit user modal
+     * Open the edit modal for CAFI Admin users
+     * (Super Administrator, Evaluation Officer, Procurement Officer, CAFI Admin)
      */
-    #[On('openEditUserModal')]
+    #[On('openCafiAdminEditModal')]
     public function openEditModal($userId)
     {
         $this->resetForm();
         $this->isEditing = true;
         $this->userId = $userId;
-        $this->modalTitle = 'Edit User';
+        $this->modalTitle = 'Edit CAFI Admin User';
         $this->submitButtonText = 'Update User';
         
         // Load user data
@@ -87,7 +87,6 @@ new class extends Component {
     #[On('closeUserModal')]
     public function closeUserModal()
     {
-     
         $this->showModal = false;
         $this->resetForm();
     }
@@ -97,7 +96,6 @@ new class extends Component {
      */
     public function resetForm()
     {
-       
         $this->reset([
             'userId', 'username', 'email', 'phone', 
             'role', 'password', 'password_confirmation', 'is_active',
@@ -163,7 +161,7 @@ new class extends Component {
             } else {
                 // Create new user
                 $user = User::create([
-                    'name' => $this->name,
+                    'name' => $this->username,
                     'email' => $this->email,
                     'phone' => $this->phone,
                     'username' => $this->username,
@@ -181,7 +179,6 @@ new class extends Component {
             // Dispatch common events
             $this->dispatch('userUpdated');
             $this->dispatch('userCreated');
-
 
             // Close modal
             $this->closeUserModal();
@@ -205,8 +202,7 @@ new class extends Component {
 ?>
 
 <div>
-
-    <!-- Add/Edit User Modal -->
+    <!-- Add/Edit User Modal for CAFI Admin Users -->
     @if($showModal)
     <div class="modal fade show d-block" 
          id="userModal" 
@@ -230,7 +226,7 @@ new class extends Component {
                     <form wire:submit.prevent="saveUser">
                         <!-- Name Field -->
                         <div class="mb-3">
-                            <label for="name" class="form-label fw-semibold small text-uppercase text-muted">
+                            <label for="username" class="form-label fw-semibold small text-uppercase text-muted">
                                 <i class="bi bi-person me-1"></i>Full Name
                             </label>
                             <input type="text" 
@@ -273,7 +269,6 @@ new class extends Component {
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-
 
                         <!-- Role Selection -->
                         <div class="mb-4">

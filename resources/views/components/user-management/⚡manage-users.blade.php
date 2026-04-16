@@ -131,6 +131,25 @@ new class extends Component {
     }
 
     /**
+     * Helper method to determine which edit event to dispatch based on user role
+     */
+    public function getEditEventName($userId)
+    {
+        $user = User::with('roles')->find($userId);
+        if (!$user) {
+            return 'openEditRegistrationModal';
+        }
+        
+        $userRole = $user->roles->isNotEmpty() ? $user->roles->first()->name : '';
+        $cafiAdminRoles = ['Super Administrator', 'Evaluation Officer', 'Procurement Officer', 'CAFI Admin'];
+        dd($cafiAdminRole);
+        
+        return in_array($userRole, $cafiAdminRoles) 
+            ? 'openCafiAdminEditModal' 
+            : 'openEditRegistrationModal';
+    }
+
+    /**
      * Approve a pending user
      */
     public function approveUser($userId)
@@ -344,7 +363,7 @@ new class extends Component {
                                 <label class="form-label small fw-semibold mb-1">Assign Role</label>
                                 <select class="form-select form-select-sm" 
                                         wire:model="pendingRoleAssignment.{{ $user->id }}">
-                                    <option value="{{ $role->name }}">{{ $role->name }}</option>
+                                    <option value="">Select a role...</option>
                                     @foreach($roles as $role)
                                         <option value="{{ $role->name }}">{{ $role->name }}</option>
                                     @endforeach
@@ -490,8 +509,18 @@ new class extends Component {
                                         <i class="bi bi-check-circle-fill" style="font-size:.7rem;"></i>
                                     </button>
                                 @else
-                                    <button wire:click="$dispatch('openEditRegistrationModal', { userId: {{ $user->id }} })" 
-                                        class="btn btn-sm btn-outline-primary" title="Edit">
+                                    <!-- Conditional edit button based on user role -->
+                                    @php
+                                        $userRole = $user->roles->isNotEmpty() ? $user->roles->first()->name : '';
+                                        $cafiAdminRoles = ['Super Administrator', 'Evaluation Officer', 'Procurement Officer', 'CAFI Admin'];
+                                        $editEvent = in_array($userRole, $cafiAdminRoles) 
+                                            ? 'openCafiAdminEditModal' 
+                                            : 'openEditRegistrationModal';
+                                    @endphp
+                                    
+                                    <button wire:click="$dispatch('{{ $editEvent }}', { userId: {{ $user->id }} })" 
+                                        class="btn btn-sm btn-outline-primary" 
+                                        title="Edit">
                                         <i class="bi bi-pencil-fill" style="font-size:.7rem;"></i>
                                     </button>
                                 
@@ -501,21 +530,13 @@ new class extends Component {
                                             wire:confirm="Are you sure you want to delete this user?">
                                         <i class="bi bi-trash-fill" style="font-size:.7rem;"></i>
                                     </button>
-                                    @if($user->is_suspended)
-                                        <button class="btn btn-sm btn-outline-success" 
-                                            wire:click="$dispatch('unsuspendUser', { userId: {{ $user->id }} })"
-                                            wire:confirm="Are you sure you want to reinstate this user?"
-                                            title="Reinstate">
-                                        <i class="bi bi-check-circle-fill" style="font-size:.7rem;"></i>
-                                    </button>
-                                    @else
-                                        <button class="btn btn-sm btn-outline-danger" 
-                                            wire:click="$dispatch('confirmSuspend', { userId: {{ $user->id }} })"
-                                            title="Suspend"
-                                            @if($user->is_suspended) disabled @endif>
+                                    
+                                    <!-- Suspend button for active users -->
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                        wire:click="$dispatch('confirmSuspend', { userId: {{ $user->id }} })"
+                                        title="Suspend">
                                         <i class="bi bi-slash-circle-fill" style="font-size:.7rem;"></i>
                                     </button>
-                                    @endif
                                 @endif
                             </div>
                         </td>
@@ -542,9 +563,7 @@ new class extends Component {
 
     </div><!-- /card -->
 
-    <!-- Suspend Modal -->
-    
+    <!-- Modals -->
     <livewire:user-management.modals.suspend-user/>
-  
     <livewire:roles.role-modal />
 </div>

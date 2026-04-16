@@ -145,6 +145,13 @@ class Call extends Model
                      ->where('close_date', '>', Carbon::now());
     }
 
+
+    // Add this to your Call model
+    public function screenings(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Screening::class, 'call_id');
+    }
+
     /**
      * Scope for published calls (visible to applicants)
      */

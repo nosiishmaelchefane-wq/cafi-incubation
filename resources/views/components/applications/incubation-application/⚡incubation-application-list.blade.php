@@ -38,10 +38,13 @@ new class extends Component
         $query = \App\Models\IncubationApplication::query()
             ->with('user');
         
-        if (!auth()->user()->hasRole('Super Administrator')) {
+        // Check if user has Super Admin or Procurement Officer role
+        $hasFullAccess = auth()->user()->hasAnyRole(['Super Administrator', 'Procurement Officer']);
+        
+        if (!$hasFullAccess) {
             $query->where('user_id', auth()->id());
         } else {
-            // For Super Admin, handle draft exclusion based on status filter
+            // For Super Admin and Procurement Officer, handle draft exclusion based on status filter
             if (empty($this->statusFilter)) {
                 // If no status filter is applied (All tab), exclude drafts
                 $query->where('status', '!=', 'draft');
@@ -81,8 +84,8 @@ new class extends Component
         }
 
         if ($this->statusFilter) {
-            // Only apply status filter if it's not already handled above for Super Admin
-            if (!auth()->user()->hasRole('Super Administrator')) {
+            // Only apply status filter if it's not already handled above for users with full access
+            if (!$hasFullAccess) {
                 $query->where('status', $this->statusFilter);
             }
         }
@@ -293,7 +296,7 @@ new class extends Component
             
             <!-- Status Tabs -->
             <!-- Status Tabs -->
-            @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
+            @if(auth()->check() && (auth()->user()->hasRole('Super Administrator') || auth()->user()->hasRole('Procurement Officer')))
                 <div class="cds-tab-row">
                     <button class="cds-tab-btn {{ $statusFilter === '' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', '')">
                         All <span class="cds-tab-count">{{ $this->statusCounts['all'] }}</span>
@@ -439,39 +442,6 @@ new class extends Component
                                                 <i class="bi bi-send-check-fill"></i>
                                             </button>
                                         @endif
-                                    <!-- Dropdown: only for Super Administrator -->
-                                    @role('Super Administrator')
-                                        @if($app->status !== 'draft')
-                                            <div class="cds-dropdown-container">
-                                                <button class="cds-action-btn" type="button" title="Change Status">
-                                                    <i class="bi bi-three-dots-vertical"></i>
-                                                </button>
-                                                <ul class="cds-dropdown-menu">
-                                                    <li>
-                                                        <a class="cds-dropdown-item" href="#" wire:click.prevent="updateStatus({{ $app->id }}, 'eligible')">
-                                                            <i class="bi bi-check-circle-fill text-success"></i> Mark Eligible
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a class="cds-dropdown-item" href="#" wire:click.prevent="updateStatus({{ $app->id }}, 'in_review')">
-                                                            <i class="bi bi-hourglass-split text-info"></i> Move to Review
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a class="cds-dropdown-item" href="#" wire:click.prevent="updateStatus({{ $app->id }}, 'shortlisted')">
-                                                            <i class="bi bi-star-fill text-warning"></i> Shortlist
-                                                        </a>
-                                                    </li>
-                                                    <li class="cds-dropdown-divider"></li>
-                                                    <li>
-                                                        <a class="cds-dropdown-item text-danger" href="#" wire:click.prevent="updateStatus({{ $app->id }}, 'rejected')">
-                                                            <i class="bi bi-x-circle-fill"></i> Reject
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        @endif
-                                    @endrole
                                 </div>
                             </td>
                         </tr>

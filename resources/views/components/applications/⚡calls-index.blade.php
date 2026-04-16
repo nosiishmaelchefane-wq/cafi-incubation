@@ -330,9 +330,9 @@ new class extends Component
                             <th class="py-3">Cohort</th>
                             <th class="py-3">Open Date</th>
                             <th class="py-3">Close Date</th>
-                            @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
-                                <th class="py-3 text-center">Applications</th>
-                            @endif
+                                @if(auth()->check() && (auth()->user()->hasRole('Super Administrator') || auth()->user()->hasRole('Procurement Officer')))
+                                        <th class="py-3 text-center">Applications</th>
+                                @endif
                             <th class="py-3">Status</th>
                             <th class="py-3 text-center">Actions</th>
                         </tr>
@@ -349,7 +349,7 @@ new class extends Component
                             </td>
                             <td>{{ $call->open_date ? $call->open_date->format('d M Y') : '—' }}</td>
                             <td>{{ $call->close_date ? $call->close_date->format('d M Y') : '—' }}</td>
-                            @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
+                            @if(auth()->check() && (auth()->user()->hasRole('Super Administrator') || auth()->user()->hasRole('Procurement Officer')))
                                 <td class="text-center">
                                     <span class="fw-semibold">{{ $call->applications_count }}</span>
                                 </td>

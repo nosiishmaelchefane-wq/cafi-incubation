@@ -38,6 +38,16 @@ new class extends Component {
         return $this->user->roles->first()?->name ?? 'No Role Assigned';
     }
     
+    /**
+     * Check if user is a CAFI Admin (Super Administrator, Evaluation Officer, Procurement Officer, CAFI Admin)
+     */
+    public function getIsCafiAdminProperty()
+    {
+        $cafiAdminRoles = ['Super Administrator', 'Evaluation Officer', 'Procurement Officer', 'CAFI Admin'];
+        $userRole = $this->user->roles->first()?->name ?? '';
+        return in_array($userRole, $cafiAdminRoles);
+    }
+    
     public function getRoleDescriptionProperty()
     {
         $role = $this->user->roles->first();
@@ -47,6 +57,9 @@ new class extends Component {
                 'Administrator' => 'Administrative access with limited system configuration',
                 'ESO' => 'Access to manage incubation calls and applications',
                 'Entrepreneur' => 'Access to apply for incubation programs',
+                'Evaluation Officer' => 'Responsible for evaluating incubation applications',
+                'Procurement Officer' => 'Manages procurement processes',
+                'CAFI Admin' => 'Manages CAFI-related administrative tasks',
             ];
             return $descriptions[$role->name] ?? 'Custom role with specific permissions';
         }
@@ -55,7 +68,12 @@ new class extends Component {
 
     public function openEditUserModal()
     {
-        $this->dispatch('openEditUserModal', userId: $this->user->id);
+        // Determine which edit event to dispatch based on user role
+        if ($this->isCafiAdmin) {
+            $this->dispatch('openCafiAdminEditModal', userId: $this->user->id);
+        } else {
+            $this->dispatch('openEditRegistrationModal', userId: $this->user->id);
+        }
     }
     
     public function getKeyPermissionsProperty()
@@ -86,11 +104,19 @@ new class extends Component {
     
     public function getApplicationsCountProperty()
     {
+        // Only show applications count for non-CAFI admins
+        if ($this->isCafiAdmin) {
+            return 0;
+        }
         return \App\Models\IncubationApplication::where('user_id', $this->user->id)->count();
     }
     
     public function getApprovalsCountProperty()
     {
+        // Only show approvals count for non-CAFI admins
+        if ($this->isCafiAdmin) {
+            return 0;
+        }
         return \App\Models\IncubationApplication::where('user_id', $this->user->id)
             ->where('status', 'approved')
             ->count();
@@ -127,7 +153,7 @@ new class extends Component {
     
     public function getFormattedDateOfBirthProperty()
     {
-        if ($this->user->userable && $this->user->isEntrepreneur()) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->isEntrepreneur()) {
             return $this->user->userable->date_of_birth ? $this->user->userable->date_of_birth->format('d M Y') : 'Not provided';
         }
         return 'Not provided';
@@ -135,7 +161,7 @@ new class extends Component {
     
     public function getFormattedGenderProperty()
     {
-        if ($this->user->userable && $this->user->isEntrepreneur()) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->isEntrepreneur()) {
             return ucfirst($this->user->userable->gender ?? 'Not provided');
         }
         return 'Not provided';
@@ -148,7 +174,7 @@ new class extends Component {
     
     public function getCompanyBioProperty()
     {
-        if ($this->user->userable && $this->user->isEntrepreneur()) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->isEntrepreneur()) {
             return $this->user->userable->short_bio ?? 'No company bio provided';
         }
         return 'Not applicable';
@@ -222,7 +248,7 @@ new class extends Component {
     
     public function getStreetAddressProperty()
     {
-        if ($this->user->userable && $this->user->userable->address) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->userable->address) {
             return $this->user->userable->address;
         }
         return 'Not provided';
@@ -230,7 +256,7 @@ new class extends Component {
     
     public function getCityProperty()
     {
-        if ($this->user->userable && $this->user->userable->area_of_operation) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->userable->area_of_operation) {
             return $this->user->userable->area_of_operation;
         }
         return 'Not provided';
@@ -238,7 +264,7 @@ new class extends Component {
 
     public function getOrganizationNameProperty()
     {
-        if ($this->user->userable && $this->user->isEntrepreneur()) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->isEntrepreneur()) {
             return $this->user->userable->organization_name ?? 'Not provided';
         }
         return 'Not applicable';
@@ -246,7 +272,7 @@ new class extends Component {
 
     public function getIndustryOrInterestProperty()
     {
-        if ($this->user->userable && $this->user->isEntrepreneur()) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->isEntrepreneur()) {
             return $this->user->userable->industry_or_interest ?? 'Not specified';
         }
         return 'Not specified';
@@ -254,7 +280,7 @@ new class extends Component {
 
     public function getYearsOfOperationProperty()
     {
-        if ($this->user->userable && $this->user->isEntrepreneur()) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->isEntrepreneur()) {
             $years = $this->user->userable->years_of_operation;
             return $years ? $years . ' years' : 'Not specified';
         }
@@ -263,7 +289,7 @@ new class extends Component {
 
     public function getAreaOfOperationProperty()
     {
-        if ($this->user->userable && $this->user->isEntrepreneur()) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->isEntrepreneur()) {
             return $this->user->userable->area_of_operation ?? 'Not specified';
         }
         return 'Not specified';
@@ -271,7 +297,7 @@ new class extends Component {
 
     public function getCountryProperty()
     {
-        if ($this->user->userable) {
+        if (!$this->isCafiAdmin && $this->user->userable) {
             return $this->user->userable->country ?? 'Not specified';
         }
         return 'Not specified';
@@ -279,7 +305,7 @@ new class extends Component {
 
     public function getTaxClearancePathProperty()
     {
-        if ($this->user->userable && $this->user->isEntrepreneur()) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->isEntrepreneur()) {
             return $this->user->userable->tax_clearance_path ?? null;
         }
         return null;
@@ -287,7 +313,7 @@ new class extends Component {
 
     public function getTradersLicensePathProperty()
     {
-        if ($this->user->userable && $this->user->isEntrepreneur()) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->isEntrepreneur()) {
             return $this->user->userable->traders_license_path ?? null;
         }
         return null;
@@ -295,7 +321,7 @@ new class extends Component {
 
     public function getShortBioProperty()
     {
-        if ($this->user->userable && $this->user->isEntrepreneur()) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->isEntrepreneur()) {
             return $this->user->userable->short_bio ?? 'No bio provided';
         }
         return $this->user->bio ?? 'No bio provided';
@@ -328,7 +354,7 @@ new class extends Component {
     
     public function getProvinceProperty()
     {
-        if ($this->user->userable && $this->user->userable->province) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->userable->province) {
             return $this->user->userable->province;
         }
         return 'Not provided';
@@ -336,7 +362,7 @@ new class extends Component {
     
     public function getPostalCodeProperty()
     {
-        if ($this->user->userable && $this->user->userable->postal_code) {
+        if (!$this->isCafiAdmin && $this->user->userable && $this->user->userable->postal_code) {
             return $this->user->userable->postal_code;
         }
         return 'Not provided';
@@ -439,7 +465,7 @@ new class extends Component {
 
                         <div class="d-grid gap-2">
                             <button class="btn btn-primary btn-sm action-btn d-flex align-items-center justify-content-center gap-2"
-                                    wire:click="$dispatch('openEditRegistrationModal', { userId: {{ $this->user->id }} })">
+                                    wire:click="openEditUserModal">
                                 <i class="bi bi-pencil-fill"></i> Edit Profile
                             </button>
                             @role('Super Administrator')
@@ -490,7 +516,8 @@ new class extends Component {
             <!-- RIGHT COLUMN – Tabs Content -->
             <div class="col-12 col-lg-8 col-xl-9">
 
-                <!-- Summary Stats -->
+                <!-- Summary Stats (hide for CAFI Admins) -->
+                @if(!$this->isCafiAdmin)
                 <div class="row g-3 mb-4">
                     <div class="col-6 col-md-3">
                         <div class="card border-0 shadow-sm h-100 stat-card">
@@ -545,6 +572,7 @@ new class extends Component {
                         </div>
                     </div>
                 </div>
+                @endif
 
                 <!-- Tabbed Card -->
                 <div class="card border-0 shadow-sm">
@@ -557,6 +585,7 @@ new class extends Component {
                                     Profile Details
                                 </a>
                             </li>
+                            @if(!$this->isCafiAdmin)
                             <li class="nav-item">
                                 <a class="nav-link {{ $activeTab === 'applications' ? 'active' : '' }}" 
                                    href="#" 
@@ -564,6 +593,7 @@ new class extends Component {
                                     Applications
                                 </a>
                             </li>
+                            @endif
                         </ul>
                     </div>
 
@@ -591,6 +621,7 @@ new class extends Component {
                                         <span class="info-label text-muted">Phone Number</span>
                                         <span class="small">{{ $this->user->phone ?? 'Not set' }}</span>
                                     </div>
+                                    @if(!$this->isCafiAdmin)
                                     <div class="info-row d-flex align-items-start">
                                         <span class="info-label text-muted">Gender</span>
                                         <span class="small">{{ $this->formattedGender }}</span>
@@ -599,13 +630,15 @@ new class extends Component {
                                         <span class="info-label text-muted">Date of Birth</span>
                                         <span class="small">{{ $this->formattedDateOfBirth }}</span>
                                     </div>
+                                    @endif
                                     <div class="info-row d-flex align-items-start">
                                         <span class="info-label text-muted">Personal Bio</span>
                                         <span class="small">{{ $this->personalBio }}</span>
                                     </div>
                                 </div>
 
-                                <!-- Business Information -->
+                                <!-- Business Information (hide for CAFI Admins) -->
+                                @if(!$this->isCafiAdmin)
                                 <div class="col-12 col-md-6">
                                     <p class="section-label mb-3">Business Information</p>
                                     <div class="info-row d-flex align-items-start">
@@ -633,9 +666,10 @@ new class extends Component {
                                         <span class="small">{{ $this->companyBio }}</span>
                                     </div>
                                 </div>
+                                @endif
 
                                 <!-- System Information -->
-                                <div class="col-12 col-md-6">
+                                <div class="col-12 {{ !$this->isCafiAdmin ? 'col-md-6' : 'col-md-12' }}">
                                     <p class="section-label mb-3">System Information</p>
                                     <div class="info-row d-flex align-items-start">
                                         <span class="info-label text-muted">User ID</span>
@@ -651,7 +685,8 @@ new class extends Component {
                                     </div>
                                 </div>
 
-                                <!-- Address Information -->
+                                <!-- Address Information (hide for CAFI Admins) -->
+                                @if(!$this->isCafiAdmin)
                                 <div class="col-12 col-md-6">
                                     <p class="section-label mb-3">Address Information</p>
                                     <div class="info-row d-flex align-items-start">
@@ -671,9 +706,10 @@ new class extends Component {
                                         <span class="small">{{ $this->postalCode }}</span>
                                     </div>
                                 </div>
+                                @endif
 
-                                <!-- Documents (if entrepreneur) -->
-                                @if($this->user->isEntrepreneur())
+                                <!-- Documents (if entrepreneur and not CAFI admin) -->
+                                @if(!$this->isCafiAdmin && $this->user->isEntrepreneur())
                                 <div class="col-12">
                                     <hr class="my-1">
                                     <p class="section-label mb-3 mt-3">Documents</p>
@@ -792,7 +828,8 @@ new class extends Component {
                             @endif
                         </div>
 
-                        <!-- TAB: Applications -->
+                        <!-- TAB: Applications (hide for CAFI Admins) -->
+                        @if(!$this->isCafiAdmin)
                         <div style="{{ $activeTab !== 'applications' ? 'display: none;' : '' }}">
                             @if($activeTab === 'applications')
                                 @php
@@ -854,6 +891,7 @@ new class extends Component {
                                 @endif
                             @endif
                         </div>
+                        @endif
                     </div>
                 </div>
             </div>

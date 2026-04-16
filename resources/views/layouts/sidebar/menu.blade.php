@@ -66,8 +66,9 @@
             @endcan
           
 
-            <!-- Screening & Eligibility - Admin only -->
+            <!-- Screening & Eligibility - Super Admin and Procurement Officer only -->
             @can('view Screening & Eligibility')
+            @if(auth()->user()->hasAnyRole(['Super Administrator', 'Procurement Officer']))
             <li class="nav-item">
                 <a href="{{ route('screening.index') }}" 
                 class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('screening.*') ? 'active-nav' : '' }}" 
@@ -81,8 +82,15 @@
                         style="color: {{ request()->routeIs('screening.*') ? 'white' : '#142552' }};">
                         Screening &amp; Eligibility
                     </span>
+                    
+                    <span class="badge ms-2 sidebar-badge flex-shrink-0" 
+                        style="background-color: {{ request()->routeIs('screening.*') ? 'white' : '#142552' }}; 
+                                color: {{ request()->routeIs('screening.*') ? '#05923b' : 'white' }};">
+                        Restricted
+                    </span>
                 </a>
             </li>
+            @endif
             @endcan
 
             <!-- Evaluation & Scoring - Admin only -->
@@ -235,13 +243,13 @@
                     style="color: {{ request()->routeIs('roles.*') ? 'white' : '#142552' }};"></i>
                     
                     <span class="fw-medium sidebar-text ms-3 me-auto" 
-                        style="color: {{ request()->routeIs('roles.*') ? 'white' : '#142552' }};">
+                        style="color: {{ request()->routeIs('roles.*') ? 'white' : '#142552' }}">
                         Roles &amp; Permissions
                     </span>
                     
                     <span class="badge ms-2 sidebar-badge flex-shrink-0" 
                         style="background-color: {{ request()->routeIs('roles.*') ? 'white' : '#142552' }}; 
-                                color: {{ request()->routeIs('roles.*') ? '#05923b' : 'white' }};">
+                                color: {{ request()->routeIs('roles.*') ? '#05923b' : 'white' }}">
                         Admin
                     </span>
                 </a>

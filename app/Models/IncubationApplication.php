@@ -87,6 +87,12 @@ class IncubationApplication extends Model
         return $this->belongsTo(User::class);
     }
 
+
+    public function screening(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Screening::class, 'application_id');
+    }
+
     /**
      * Boot method to generate application number automatically
      */

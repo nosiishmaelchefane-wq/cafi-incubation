@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Auth;
 
 class IncubationApplication extends Model
 {
@@ -77,6 +78,24 @@ class IncubationApplication extends Model
     public function call(): BelongsTo
     {
         return $this->belongsTo(Call::class);
+    }
+
+    /**
+     * Get evaluation scores for this application
+     */
+    public function evaluationScores(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(EvaluationScore::class, 'application_id');
+    }
+
+    /**
+     * Get the current user's evaluation score for this application
+     */
+    public function myEvaluationScore()
+    {
+        return $this->evaluationScores()
+            ->where('evaluator_id', Auth::id())
+            ->first();
     }
 
     /**

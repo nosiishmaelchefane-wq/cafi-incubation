@@ -145,13 +145,6 @@ class Call extends Model
                      ->where('close_date', '>', Carbon::now());
     }
 
-
-    // Add this to your Call model
-    public function screenings(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(Screening::class, 'call_id');
-    }
-
     /**
      * Scope for published calls (visible to applicants)
      */
@@ -166,5 +159,46 @@ class Call extends Model
     public function scopeActive($query)
     {
         return $query->whereIn('status', ['published', 'open']);
+    }
+
+        
+    /**
+     * Get assigned evaluators for this call
+     */
+    public function assignedEvaluators(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AssignedEvaluator::class);
+    }
+
+    /**
+     * Get evaluators assigned to this call
+     */
+    public function evaluators()
+    {
+        return $this->belongsToMany(User::class, 'assigned_evaluators', 'call_id', 'user_id')
+                    ->withPivot('status', 'evaluation_deadline', 'assigned_applications_count', 'scored_applications_count', 'assigned_at')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Get eligible applications for evaluation (submitted and in_review applications)
+     */
+    public function getEligibleApplicationsForEvaluation()
+    {
+        return $this->applications()
+            ->whereIn('status', ['submitted', 'in_review', 'eligible'])
+            ->get();
+    }
+
+    /**
+     * Update assigned applications count for an evaluator
+     */
+    public function updateAssignedApplicationsCount($evaluatorId)
+    {
+        $assignment = $this->assignedEvaluators()->where('user_id', $evaluatorId)->first();
+        if ($assignment) {
+            $eligibleCount = $this->getEligibleApplicationsForEvaluation()->count();
+            $assignment->update(['assigned_applications_count' => $eligibleCount]);
+        }
     }
 }

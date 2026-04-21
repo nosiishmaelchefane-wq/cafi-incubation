@@ -39,7 +39,7 @@ new class extends Component
         $this->loadCallData();
     }
     
-    #[On('open-evaluation-window-modal')]
+    #[On('openAssignEvaluatorModal')]
     public function openModal($callId = null)
     {
         // Receive the callId from the dispatched event

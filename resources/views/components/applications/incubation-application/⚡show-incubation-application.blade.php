@@ -3,6 +3,7 @@
 use Livewire\Component;
 use App\Models\IncubationApplication;
 use Livewire\Attributes\On;
+use Illuminate\Support\Facades\Auth;
 
 new class extends Component
 {
@@ -17,7 +18,6 @@ new class extends Component
         }
     }
 
-
     #[On('application-updated')]
     public function refreshApplication()
     {
@@ -27,6 +27,36 @@ new class extends Component
     public function openEditModal($applicationId)
     {
         $this->dispatch('edit-application', applicationId: $applicationId);
+    }
+    
+    /**
+     * Submit the application (change status from draft to submitted)
+     */
+    public function submitApplication()
+    {
+        // Check if user owns this application
+        if ($this->application->user_id !== Auth::id()) {
+            $this->dispatch('notify', type: 'error', message: 'You are not authorized to submit this application');
+            return;
+        }
+        
+        // Check if application is in draft status
+        if ($this->application->status !== 'draft') {
+            $this->dispatch('notify', type: 'error', message: 'Only draft applications can be submitted');
+            return;
+        }
+        
+        // Update application status
+        $this->application->update([
+            'status' => 'submitted',
+            'submitted_at' => now(),
+        ]);
+        
+        $this->dispatch('notify', type: 'success', message: 'Application submitted successfully!');
+        $this->dispatch('application-updated');
+        
+        // Refresh the application data
+        $this->application = $this->application->fresh();
     }
     
     public function getSocialMediaProperty()
@@ -82,9 +112,8 @@ new class extends Component
         return [];
     }
 
-   public function deleteApplication($applicationId)
+    public function deleteApplication($applicationId)
     {
-       
         $application = IncubationApplication::findOrFail($applicationId);
         
         // Check if user owns this application
@@ -94,8 +123,8 @@ new class extends Component
         }
         
         // Check status - only pending applications can be deleted
-        if ($application->status !== 'pending') {
-            $this->dispatch('notify', type: 'error', message: 'Only pending applications can be deleted');
+        if ($application->status !== 'draft') {
+            $this->dispatch('notify', type: 'error', message: 'Only draft applications can be deleted');
             return;
         }
         
@@ -736,6 +765,24 @@ new class extends Component
                     </div>
                     <div class="app-card-body p-3">
                         <div class="d-flex flex-column gap-2">
+                            <!-- Submit Application Button (Only for Draft Status) -->
+                            @if($application->status === 'draft')
+                                <button 
+                                    class="btn app-action-link text-start w-100"
+                                    style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;"
+                                    wire:click="submitApplication"
+                                    wire:confirm="Are you sure you want to submit this application?\n\nOnce submitted, you will not be able to make any further changes.\n\nThe application will be sent for review.">
+                                    <i class="bi bi-send-check-fill me-2"></i>
+                                    <span>Submit Application</span>
+                                    <i class="bi bi-chevron-right ms-auto text-white opacity-75"></i>
+                                </button>
+                            @elseif($application->status === 'submitted')
+                                <div class="alert alert-success mb-2 py-2 px-3 small">
+                                    <i class="bi bi-check-circle-fill me-1"></i> 
+                                    Application submitted on {{ $application->submitted_at?->format('d M Y, H:i') }}
+                                </div>
+                            @endif
+
                             @can('view Screening & Eligibility')
                                 <a href="#" class="btn app-action-link text-start">
                                     <i class="bi bi-funnel-fill me-2 text-warning"></i>
@@ -751,25 +798,27 @@ new class extends Component
                                     <i class="bi bi-chevron-right ms-auto text-muted"></i>
                                 </a>
                             @endcan
+
                             @can('edit Applications')
-                                @if($application->status === 'Draft')
+                                @if($application->status === 'draft')
                                     <a href="#" 
-                                    class="btn app-action-link text-start"
-                                    wire:click.prevent="openEditModal({{ $application->id }})">
+                                        class="btn app-action-link text-start"
+                                        wire:click.prevent="openEditModal({{ $application->id }})">
                                         <i class="bi bi-pencil-fill me-2 text-info"></i>
                                         <span>Edit Application</span>
                                         <i class="bi bi-chevron-right ms-auto text-muted"></i>
                                     </a>
                                 @endif
                             @endcan
+
                             <hr class="my-1">
+
                             @can('delete Applications')
                                 @if($application->status === 'draft')
                                     <button 
                                         class="btn app-action-link app-action-danger text-start w-100"
                                         wire:click="deleteApplication({{ $application->id }})"
                                         wire:confirm="Delete this application? This cannot be undone.">
-                                        
                                         <i class="bi bi-trash3-fill me-2"></i>
                                         <span>Delete Application</span>
                                         <i class="bi bi-chevron-right ms-auto text-muted"></i>
@@ -779,8 +828,7 @@ new class extends Component
                                         class="btn app-action-link text-start w-100 disabled"
                                         style="opacity: 0.5; cursor: not-allowed;"
                                         disabled
-                                        title="Only pending applications can be deleted">
-                                        
+                                        title="Only draft applications can be deleted">
                                         <i class="bi bi-trash3-fill me-2 text-secondary"></i>
                                         <span>Delete Application (Only Draft)</span>
                                         <i class="bi bi-chevron-right ms-auto text-muted"></i>

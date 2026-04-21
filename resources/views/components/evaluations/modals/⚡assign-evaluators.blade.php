@@ -1,91 +1,131 @@
 <?php
+// app/Livewire/AssignedEvaluatorsModal.php
+
+namespace App\Livewire;
 
 use Livewire\Component;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Computed;
 use App\Models\Call;
-use App\Models\EvaluationWindow;
-use Carbon\Carbon;
+use App\Models\User;
+use App\Models\AssignedEvaluator;
+use Illuminate\Support\Facades\Auth;
+use Spatie\Permission\Models\Role;
+
 
 new class extends Component
 {
-    public $showModal = false;
-    public $callId;
-    public $call;
-    public $evaluationWindow;
+    public $callId = null;
+    public $call = null;
+    public $showAssignModal = false;
+    public $evaluationDeadline = '';
+    public $selectAll = false;
+    public $allEvaluators = [];
     public $isSaving = false;
     
-    // Form fields
-    public $open_date;
-    public $close_date;
-    public $notes;
-    
-    protected $rules = [
-        'open_date' => 'required|date|after_or_equal:today',
-        'close_date' => 'required|date|after:open_date',
-        'notes' => 'nullable|string|max:500',
-    ];
-    
-    protected $messages = [
-        'open_date.required' => 'Please select an evaluation open date.',
-        'open_date.after_or_equal' => 'Evaluation open date must be today or a future date.',
-        'close_date.required' => 'Please select an evaluation close date.',
-        'close_date.after' => 'Evaluation close date must be after the open date.',
-        'notes.max' => 'Notes cannot exceed 500 characters.',
-    ];
-    
-    #[On('refresh-evaluation-window')]
-    public function refreshData()
+    public function mount($callId = null)
     {
-        $this->loadCallData();
+        $this->callId = $callId;
+        if ($callId) {
+            $this->call = Call::with('assignedEvaluators')->find($callId);
+            $this->loadEvaluators();
+        }
     }
     
     #[On('openAssignEvaluatorModal')]
     public function openModal($callId = null)
     {
-        // Receive the callId from the dispatched event
         if ($callId) {
             $this->callId = $callId;
+            $this->call = Call::with('assignedEvaluators')->find($callId);
         }
-        
-        $this->resetValidation();
-        $this->isSaving = false;
-        $this->loadCallData(); // Refresh data before opening
-        $this->showModal = true;
+        $this->loadEvaluators();
+        $this->showAssignModal = true;
     }
     
-    public function loadCallData()
+    public function loadEvaluators()
     {
-        if ($this->callId) {
-            $this->call = Call::find($this->callId);
-            if ($this->call) {
-                // Get the latest evaluation window if exists
-                $this->evaluationWindow = $this->call->latestEvaluationWindow;
-                if ($this->evaluationWindow) {
-                    $this->open_date = $this->evaluationWindow->open_date->format('Y-m-d');
-                    $this->close_date = $this->evaluationWindow->close_date->format('Y-m-d');
-                    $this->notes = $this->evaluationWindow->notes;
-                } else {
-                    // Reset form fields if no existing window
-                    $this->open_date = null;
-                    $this->close_date = null;
-                    $this->notes = null;
-                }
-            } else {
-                $this->dispatch('notify', type: 'error', message: 'Call not found.');
+        // Check if Evaluator role exists
+        $roleExists = Role::where('name', 'Evaluation Officer')->exists();
+        
+        if (!$roleExists) {
+            $this->allEvaluators = [];
+            $this->dispatch('notify', type: 'warning', message: 'Evaluator role not found.');
+            return;
+        }
+        
+        // Get users with Evaluator role
+        $evaluatorUsers = User::role('Evaluation Officer')->get();
+        
+        if ($evaluatorUsers->isEmpty()) {
+            $this->allEvaluators = [];
+            $this->dispatch('notify', type: 'info', message: 'No users have the Evaluator role. Assign the role to users first.');
+            return;
+        }
+        
+        // Get existing assignments for this call
+        $existingAssignments = AssignedEvaluator::where('call_id', $this->callId)
+            ->get()
+            ->keyBy('user_id');
+        
+        // Get eligible applications count for this call
+        $eligibleApplicationsCount = $this->call ? $this->call->getEligibleApplicationsForEvaluation()->count() : 0;
+        
+        $this->allEvaluators = $evaluatorUsers->map(function($user) use ($existingAssignments, $eligibleApplicationsCount) {
+            $assignment = $existingAssignments->get($user->id);
+            
+            return [
+                'id' => $user->id,
+                'initials' => $this->getInitials($user->name ?? $user->username),
+                'name' => $user->name ?? $user->username,
+                'email' => $user->email,
+                'role' => $user->roles->first()->name ?? 'Evaluator',
+                'assigned' => $assignment ? true : false,
+                'assignedApps' => $assignment ? $assignment->assigned_applications_count : 0,
+                'scoredApps' => $assignment ? $assignment->scored_applications_count : 0,
+                'status' => $assignment ? $assignment->status : 'pending',
+                'deadline' => $assignment ? $assignment->evaluation_deadline?->format('Y-m-d') : null,
+                'active' => $user->is_active ?? true,
+                'eligibleAppsCount' => $eligibleApplicationsCount,
+            ];
+        })->toArray();
+        
+        // Set default deadline if not set
+        if (empty($this->evaluationDeadline) && $this->call && $this->call->close_date) {
+            $this->evaluationDeadline = $this->call->close_date->format('Y-m-d');
+        } elseif (empty($this->evaluationDeadline)) {
+            $this->evaluationDeadline = now()->addDays(30)->format('Y-m-d');
+        }
+    }
+    
+    private function getInitials($name)
+    {
+        $words = explode(' ', $name);
+        $initials = '';
+        foreach ($words as $word) {
+            if (!empty($word)) {
+                $initials .= strtoupper($word[0]);
             }
-        } else {
-            $this->dispatch('notify', type: 'error', message: 'No call ID provided.');
+        }
+        return substr($initials, 0, 2);
+    }
+    
+    public function updatedSelectAll($value)
+    {
+        foreach ($this->allEvaluators as $index => $ev) {
+            if ($ev['scoredApps'] == 0) {
+                $this->allEvaluators[$index]['assigned'] = $value;
+            }
         }
     }
     
     public function closeModal()
     {
-        $this->showModal = false;
-        $this->isSaving = false;
-        $this->reset(['open_date', 'close_date', 'notes']);
+        $this->showAssignModal = false;
+        $this->reset(['selectAll', 'isSaving']);
     }
     
-    public function saveEvaluationWindow()
+    public function saveAssignments()
     {
         if ($this->isSaving) {
             return;
@@ -93,218 +133,276 @@ new class extends Component
         
         $this->isSaving = true;
         
-        $this->validate();
-        
-        try {
-            // Additional validation for dates
-            $openDate = Carbon::parse($this->open_date);
-            $closeDate = Carbon::parse($this->close_date);
-            $now = Carbon::now();
-            
-            // Check if close date is in the past
-            if ($closeDate->lt($now)) {
-                $this->dispatch('notify', type: 'error', message: 'Evaluation close date cannot be in the past.');
-                $this->isSaving = false;
-                return;
-            }
-            
-            // Check if open date is in the past (but not today)
-            if ($openDate->lt($now->startOfDay())) {
-                $this->dispatch('notify', type: 'error', message: 'Evaluation open date cannot be in the past.');
-                $this->isSaving = false;
-                return;
-            }
-            
-            // Create or update evaluation window
-            $evaluationWindow = $this->evaluationWindow ?? new EvaluationWindow();
-            $evaluationWindow->call_id = $this->call->id;
-            $evaluationWindow->open_date = $openDate;
-            $evaluationWindow->close_date = $closeDate;
-            $evaluationWindow->notes = $this->notes;
-            
-            // Set status based on dates
-            if ($closeDate < $now) {
-                $evaluationWindow->status = 'expired';
-                $this->dispatch('notify', type: 'warning', message: 'Evaluation window is already expired.');
-            } elseif ($openDate <= $now && $closeDate >= $now) {
-                $evaluationWindow->status = 'active';
-                $this->dispatch('notify', type: 'success', message: 'Evaluation window is now active!');
-            } else {
-                $evaluationWindow->status = 'draft';
-                $this->dispatch('notify', type: 'info', message: 'Evaluation window scheduled successfully.');
-            }
-            
-            $evaluationWindow->save();
-            
-            // Update call status based on evaluation window
-            if ($evaluationWindow->status === 'active') {
-                $this->call->status = 'open';
-            } elseif ($evaluationWindow->status === 'draft' && $this->call->status === 'open') {
-                $this->call->status = 'published';
-            }
-            
-            $this->call->save();
-            
-            // Dispatch events to notify other components
-            $this->dispatch('evaluation-window-saved', evaluationWindowId: $evaluationWindow->id);
-            $this->dispatch('refresh-evaluation-display'); 
-            
-            $this->closeModal();
-            
-            // Success notification
-            $this->dispatch('notify', type: 'success', message: 'Evaluation window dates have been set successfully!');
-            
-        } catch (\Exception $e) {
-            $this->dispatch('notify', type: 'error', message: 'Error saving evaluation window: ' . $e->getMessage());
-        } finally {
+        if (!$this->callId) {
+            $this->dispatch('notify', type: 'error', message: 'No call selected.');
             $this->isSaving = false;
-        }
-    }
-    
-    public function updatedOpenDate()
-    {
-        // Validate open date when changed
-        if ($this->open_date && Carbon::parse($this->open_date)->lt(Carbon::now()->startOfDay())) {
-            $this->dispatch('notify', type: 'error', message: 'Evaluation open date cannot be in the past.');
-            $this->open_date = null;
-        }
-    }
-    
-    public function updatedCloseDate()
-    {
-        // Validate close date when changed
-        if ($this->close_date && Carbon::parse($this->close_date)->lt(Carbon::now())) {
-            $this->dispatch('notify', type: 'error', message: 'Evaluation close date cannot be in the past.');
-            $this->close_date = null;
+            return;
         }
         
-        // Check if close date is after open date
-        if ($this->open_date && $this->close_date && Carbon::parse($this->close_date)->lte(Carbon::parse($this->open_date))) {
-            $this->dispatch('notify', type: 'error', message: 'Evaluation close date must be after the open date.');
-            $this->close_date = null;
+        if (empty($this->evaluationDeadline)) {
+            $this->dispatch('notify', type: 'error', message: 'Evaluation deadline is required.');
+            $this->isSaving = false;
+            return;
         }
+        
+        if ($this->evaluationDeadline < now()->format('Y-m-d')) {
+            $this->dispatch('notify', type: 'error', message: 'Evaluation deadline cannot be in the past.');
+            $this->isSaving = false;
+            return;
+        }
+        
+        $assignedCount = 0;
+        $removedCount = 0;
+        
+        $eligibleApplicationsCount = $this->call->getEligibleApplicationsForEvaluation()->count();
+        
+        foreach ($this->allEvaluators as $evaluator) {
+            $existingAssignment = AssignedEvaluator::where('call_id', $this->callId)
+                ->where('user_id', $evaluator['id'])
+                ->first();
+            
+            if ($evaluator['assigned']) {
+                if ($existingAssignment) {
+                    $existingAssignment->update([
+                        'evaluation_deadline' => $this->evaluationDeadline,
+                        'assigned_applications_count' => $eligibleApplicationsCount,
+                    ]);
+                } else {
+                    AssignedEvaluator::create([
+                        'call_id' => $this->callId,
+                        'user_id' => $evaluator['id'],
+                        'assigned_by' => Auth::id(),
+                        'evaluation_deadline' => $this->evaluationDeadline,
+                        'status' => 'pending',
+                        'assigned_applications_count' => $eligibleApplicationsCount,
+                        'assigned_at' => now(),
+                    ]);
+                    $assignedCount++;
+                }
+            } else {
+                if ($existingAssignment) {
+                    if ($existingAssignment->scored_applications_count > 0) {
+                        $this->dispatch('notify', 
+                            type: 'warning', 
+                            message: "Cannot remove {$evaluator['name']} - they have already scored {$existingAssignment->scored_applications_count} application(s)."
+                        );
+                        continue;
+                    }
+                    $existingAssignment->delete();
+                    $removedCount++;
+                }
+            }
+        }
+        
+        $message = [];
+        if ($assignedCount > 0) $message[] = $assignedCount . ' evaluator(s) assigned';
+        if ($removedCount > 0) $message[] = $removedCount . ' evaluator(s) removed';
+        if (empty($message)) $message[] = 'No changes made';
+        
+        $this->dispatch('notify', type: 'success', message: implode(' and ', $message) . ' successfully.');
+        $this->dispatch('evaluatorsUpdated', callId: $this->callId);
+        $this->closeModal();
     }
     
-};
+    #[Computed]
+    public function assignedCount()
+    {
+        return collect($this->allEvaluators)->where('assigned', true)->count();
+    }
+    
+    #[Computed]
+    public function totalEvaluators()
+    {
+        return count($this->allEvaluators);
+    }
+}
 ?>
+<div 
+    x-data="{ open: @entangle('showAssignModal') }"
+    x-cloak
+>
 
-<div>
-    {{-- Display current evaluation window info if exists --}}
-    @if($evaluationWindow && $evaluationWindow->exists)
-        <div class="mt-2 small text-muted">
-            <i class="bi bi-calendar-range"></i> 
-            <strong>Evaluation Window:</strong> 
-            {{ $evaluationWindow->open_date->format('M d, Y') }} - {{ $evaluationWindow->close_date->format('M d, Y') }}
-            @if($evaluationWindow->status === 'active')
-                <span class="badge bg-success">Active</span>
-            @elseif($evaluationWindow->status === 'expired')
-                <span class="badge bg-secondary">Expired</span>
-            @else
-                <span class="badge bg-warning">Upcoming</span>
-            @endif
-            @if(isset($evaluationWindow->locked_at) && $evaluationWindow->locked_at)
-                <span class="badge bg-danger">Locked</span>
-            @endif
-        </div>
-    @endif
+    <!-- Modal Backdrop -->
+    <div 
+        x-show="open"
+        x-transition.opacity
+        class="fixed inset-0 bg-black bg-opacity-50 z-40"
+        @click="open = false"
+    ></div>
 
-    {{-- Modal --}}
-    @if($showModal)
-        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5);">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header bg-warning text-dark">
-                        <h5 class="modal-title">
-                            <i class="bi bi-calendar-range"></i> Set Evaluation Window Dates
-                            @if($call)
-                                <small class="text-muted"> - {{ $call->title }}</small>
-                            @endif
-                        </h5>
-                        <button type="button" class="btn-close" wire:click="closeModal" aria-label="Close"></button>
+    <!-- Modal -->
+    <div 
+        x-show="open"
+        x-transition
+        @keydown.escape.window="open = false"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+    >
+        <div 
+            class="bg-white rounded-3 shadow-lg w-100"
+            style="max-width: 1000px; max-height: 90vh; display: flex; flex-direction: column;"
+            @click.stop
+        >
+
+            <!-- Header -->
+            <div class="px-4 pt-4 pb-2 d-flex justify-content-between align-items-center border-bottom">
+                <div>
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-person-plus-fill text-primary me-2"></i>
+                        Assign Evaluators
+                    </h5>
+                    @if($call)
+                    <small class="text-muted">
+                        Call: {{ $call->title }} (Cohort {{ $call->cohort }})
+                    </small>
+                    @endif
+                </div>
+                <button class="btn-close" @click="open = false"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="px-4 py-3" style="flex: 1; overflow-y: auto;">
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Each evaluator can be assigned only once per call. Once assigned, they will be able to evaluate all eligible applications for this call.
+                    @if($call)
+                    <strong>{{ $this->assignedCount }}</strong> of <strong>{{ $this->totalEvaluators }}</strong> evaluators currently assigned.
+                    @endif
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="small text-muted">
+                        <i class="bi bi-people me-1"></i>
+                        <span class="fw-semibold">{{ $this->assignedCount }}</span> evaluator(s) selected
                     </div>
                     
-                    <form wire:submit.prevent="saveEvaluationWindow">
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="open_date" class="form-label">
-                                    <i class="bi bi-unlock"></i> Evaluation Open Date <span class="text-danger">*</span>
-                                </label>
-                                <input 
-                                    type="date" 
-                                    id="open_date"
-                                    wire:model.live="open_date"
-                                    class="form-control @error('open_date') is-invalid @enderror"
-                                    min="{{ date('Y-m-d') }}">
-                                @error('open_date')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                                <small class="form-text text-muted">
-                                    Evaluation period will start on this date.
-                                </small>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="close_date" class="form-label">
-                                    <i class="bi bi-lock"></i> Evaluation Close Date <span class="text-danger">*</span>
-                                </label>
-                                <input 
-                                    type="date" 
-                                    id="close_date"
-                                    wire:model.live="close_date"
-                                    class="form-control @error('close_date') is-invalid @enderror"
-                                    min="{{ $open_date ?? date('Y-m-d', strtotime('+1 day')) }}">
-                                @error('close_date')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                                <small class="form-text text-muted">
-                                    Evaluation period will end on this date.
-                                </small>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="notes" class="form-label">
-                                    <i class="bi bi-pencil"></i> Notes (Optional)
-                                </label>
-                                <textarea 
-                                    id="notes"
-                                    wire:model="notes"
-                                    class="form-control @error('notes') is-invalid @enderror"
-                                    rows="3"
-                                    placeholder="Add any notes about this evaluation window..."></textarea>
-                                @error('notes')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            
-                            <div class="alert alert-info">
-                                <i class="bi bi-info-circle"></i>
-                                <strong>Evaluation Window Information:</strong>
-                                <ul class="mb-0 mt-2">
-                                    <li>Evaluators can only assess applications during the evaluation window.</li>
-                                    <li>The call will automatically open for evaluation on the selected open date.</li>
-                                    <li>The evaluation period will automatically close on the selected close date.</li>
-                                    <li>You can create multiple evaluation windows for different evaluation cycles.</li>
-                                </ul>
-                            </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="small">
+                            <label class="form-label mb-0 me-2">Evaluation Deadline:</label>
+                            <input type="date"
+                                   class="form-control form-control-sm d-inline-block"
+                                   style="width: auto;"
+                                   wire:model="evaluationDeadline">
                         </div>
-                        
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary px-4" wire:click="closeModal">
-                                Cancel
-                            </button>
-                            <button type="submit" class="btn btn-warning px-4" wire:loading.attr="disabled">
-                                <span wire:loading.remove>
-                                    <i class="bi bi-save me-1"></i> Save Window
-                                </span>
-                                <span wire:loading>
-                                    <span class="spinner-border spinner-border-sm me-1"></span>
-                                    Saving...
-                                </span>
-                            </button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
+
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover align-middle small mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th style="width: 40px;">
+                                    <input type="checkbox" wire:model="selectAll">
+                                </th>
+                                <th>Evaluator</th>
+                                <th>Role</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Assigned Apps</th>
+                                <th class="text-center">Scored</th>
+                                <th class="text-center">Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($allEvaluators as $index => $ev)
+                            <tr class="{{ $ev['assigned'] ? 'table-light' : '' }}">
+                                <td>
+                                    <input type="checkbox"
+                                           wire:model="allEvaluators.{{ $index }}.assigned"
+                                           {{ $ev['scoredApps'] > 0 ? 'disabled' : '' }}>
+                                    @if($ev['scoredApps'] > 0)
+                                    <div class="small text-muted mt-1">
+                                        <i class="bi bi-lock-fill"></i>
+                                    </div>
+                                    @endif
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="ev-lg-avatar bg-primary text-white">
+                                            {{ $ev['initials'] }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-medium">{{ $ev['name'] }}</div>
+                                            <div class="text-muted small">{{ $ev['email'] }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ $ev['role'] }}</td>
+                                <td class="text-center">
+                                    @if($ev['assigned'])
+                                        @php
+                                            $statusColors = [
+                                                'pending' => 'bg-warning text-dark',
+                                                'in_progress' => 'bg-info text-white',
+                                                'completed' => 'bg-success text-white',
+                                            ];
+                                            $statusText = [
+                                                'pending' => 'Pending',
+                                                'in_progress' => 'In Progress',
+                                                'completed' => 'Completed',
+                                            ];
+                                        @endphp
+                                        <span class="badge {{ $statusColors[$ev['status']] ?? 'bg-secondary' }}">
+                                            {{ $statusText[$ev['status']] ?? ucfirst($ev['status']) }}
+                                        </span>
+                                    @else
+                                        <span class="badge bg-secondary bg-opacity-25 text-muted">
+                                            Not Assigned
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="text-center">{{ $ev['assignedApps'] }}</td>
+                                <td class="text-center">{{ $ev['scoredApps'] }}</td>
+                                <td class="text-center">
+                                    @if($ev['assignedApps'] > 0)
+                                        <div class="d-flex align-items-center gap-1">
+                                            <div class="progress flex-grow-1" style="height: 5px; width: 80px;">
+                                                <div class="progress-bar bg-success" 
+                                                     style="width: {{ ($ev['scoredApps'] / max($ev['assignedApps'], 1)) * 100 }}%">
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">
+                                                {{ $ev['scoredApps'] }}/{{ $ev['assignedApps'] }}
+                                            </small>
+                                        </div>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-people fs-1 d-block mb-2 opacity-50"></i>
+                                    No evaluator users found. Please create users with the "Evaluator" role first.
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                @if($call && $call->getEligibleApplicationsForEvaluation()->count() > 0)
+                <div class="mt-3 small text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>{{ $call->getEligibleApplicationsForEvaluation()->count() }}</strong> eligible application(s) will be assigned to each selected evaluator.
+                </div>
+                @endif
+            </div>
+
+            <!-- Footer -->
+            <div class="px-4 pb-4 pt-2 d-flex justify-content-end gap-2 border-top">
+                <button class="btn btn-light px-4" @click="open = false">
+                    Cancel
+                </button>
+                <button class="btn btn-primary px-4" wire:click="saveAssignments" wire:loading.attr="disabled">
+                    <span wire:loading.remove>
+                        <i class="bi bi-save me-1"></i>Save Assignments
+                    </span>
+                    <span wire:loading>
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                        Saving...
+                    </span>
+                </button>
             </div>
         </div>
-    @endif
+    </div>
 </div>

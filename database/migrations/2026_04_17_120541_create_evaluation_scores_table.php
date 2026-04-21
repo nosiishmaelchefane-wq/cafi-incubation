@@ -43,10 +43,6 @@ return new class extends Migration
             
             // Comments and metadata
             $table->text('evaluator_comments')->nullable();
-            $table->string('evaluator_name')->nullable();
-            $table->date('evaluation_date')->nullable();
-            $table->string('evaluation_location')->nullable();
-            
             // Status
             $table->enum('status', ['draft', 'submitted'])->default('draft');
             $table->timestamp('submitted_at')->nullable();

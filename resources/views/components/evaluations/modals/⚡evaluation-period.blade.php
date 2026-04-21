@@ -12,7 +12,6 @@ new class extends Component
     public $callId;
     public $call;
     public $evaluationWindow;
-    public $isSaving = false;
     
     // Form fields
     public $open_date;
@@ -48,7 +47,6 @@ new class extends Component
         }
         
         $this->resetValidation();
-        $this->isSaving = false;
         $this->loadCallData(); // Refresh data before opening
         $this->showModal = true;
     }
@@ -81,18 +79,11 @@ new class extends Component
     public function closeModal()
     {
         $this->showModal = false;
-        $this->isSaving = false;
         $this->reset(['open_date', 'close_date', 'notes']);
     }
     
     public function saveEvaluationWindow()
     {
-        if ($this->isSaving) {
-            return;
-        }
-        
-        $this->isSaving = true;
-        
         $this->validate();
         
         try {
@@ -104,14 +95,12 @@ new class extends Component
             // Check if close date is in the past
             if ($closeDate->lt($now)) {
                 $this->dispatch('notify', type: 'error', message: 'Evaluation close date cannot be in the past.');
-                $this->isSaving = false;
                 return;
             }
             
             // Check if open date is in the past (but not today)
             if ($openDate->lt($now->startOfDay())) {
                 $this->dispatch('notify', type: 'error', message: 'Evaluation open date cannot be in the past.');
-                $this->isSaving = false;
                 return;
             }
             
@@ -136,6 +125,9 @@ new class extends Component
             
             $evaluationWindow->save();
             
+            // Update call's current evaluation window
+            $this->call->current_evaluation_window_id = $evaluationWindow->id;
+            
             // Update call status based on evaluation window
             if ($evaluationWindow->status === 'active') {
                 $this->call->status = 'open';
@@ -156,8 +148,6 @@ new class extends Component
             
         } catch (\Exception $e) {
             $this->dispatch('notify', type: 'error', message: 'Error saving evaluation window: ' . $e->getMessage());
-        } finally {
-            $this->isSaving = false;
         }
     }
     
@@ -184,29 +174,10 @@ new class extends Component
             $this->close_date = null;
         }
     }
-    
 };
 ?>
 
 <div>
-    {{-- Display current evaluation window info if exists --}}
-    @if($evaluationWindow && $evaluationWindow->exists)
-        <div class="mt-2 small text-muted">
-            <i class="bi bi-calendar-range"></i> 
-            <strong>Evaluation Window:</strong> 
-            {{ $evaluationWindow->open_date->format('M d, Y') }} - {{ $evaluationWindow->close_date->format('M d, Y') }}
-            @if($evaluationWindow->status === 'active')
-                <span class="badge bg-success">Active</span>
-            @elseif($evaluationWindow->status === 'expired')
-                <span class="badge bg-secondary">Expired</span>
-            @else
-                <span class="badge bg-warning">Upcoming</span>
-            @endif
-            @if(isset($evaluationWindow->locked_at) && $evaluationWindow->locked_at)
-                <span class="badge bg-danger">Locked</span>
-            @endif
-        </div>
-    @endif
 
     {{-- Modal --}}
     @if($showModal)
@@ -289,17 +260,11 @@ new class extends Component
                         </div>
                         
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary px-4" wire:click="closeModal">
-                                Cancel
+                            <button type="button" class="btn btn-secondary" wire:click="closeModal">
+                                <i class="bi bi-x-circle"></i> Cancel
                             </button>
-                            <button type="submit" class="btn btn-warning px-4" wire:loading.attr="disabled">
-                                <span wire:loading.remove>
-                                    <i class="bi bi-save me-1"></i> Save Window
-                                </span>
-                                <span wire:loading>
-                                    <span class="spinner-border spinner-border-sm me-1"></span>
-                                    Saving...
-                                </span>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-save"></i> Save Evaluation Window
                             </button>
                         </div>
                     </form>

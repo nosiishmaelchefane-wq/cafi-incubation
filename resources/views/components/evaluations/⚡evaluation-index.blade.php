@@ -7,8 +7,10 @@ use App\Models\Call;
 use App\Models\IncubationApplication;
 use App\Models\AssignedEvaluator;
 use App\Models\EvaluationScore;
+use App\Models\EvaluationWindow;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
+use Carbon\Carbon;
 
 
 new class extends Component
@@ -19,7 +21,8 @@ new class extends Component
     public $selectedCall = null;
     public $search = '';
     public $sectorFilter = '';
-    public $scoreStatusFilter = ''; // 'all', 'scored', 'partial', 'not_scored'
+    public $scoreStatusFilter = '';
+    public $evaluationWindow = null;
     
     protected $queryString = [
         'selectedCohort' => ['except' => null],
@@ -37,11 +40,36 @@ new class extends Component
       
             if ($this->calls->isNotEmpty()) {
                 $this->selectedCall = $this->calls->first()->id;
+                $this->loadEvaluationWindow();
             }
         }
     }
 
-     /**
+    public function loadEvaluationWindow()
+    {
+        if ($this->selectedCall) {
+            $call = Call::find($this->selectedCall);
+            $this->evaluationWindow = $call?->latestEvaluationWindow;
+        }
+    }
+
+    public function lockWindow()
+    {
+        if ($this->selectedCall) {
+            $this->dispatch('open-evaluation-window-modal', callId: $this->selectedCall);
+        } else {
+            $this->dispatch('notify', type: 'error', message: 'No call selected to lock window.');
+        }
+    }
+    
+    #[On('evaluation-window-saved')]
+    public function refreshEvaluationWindow()
+    {
+        $this->loadEvaluationWindow();
+        $this->dispatch('notify', type: 'success', message: 'Evaluation window updated successfully!');
+    }
+    
+    /**
      * Listen for score updated event and refresh the component
      */
     #[On('scoreUpdated')]
@@ -88,7 +116,6 @@ new class extends Component
     }
 
     /**
-     * 
      * Get eligible applications for evaluation
      */
     public function getApplicationsProperty()
@@ -168,7 +195,6 @@ new class extends Component
     /**
      * Get statistics for the selected call
      */
-
     public function getStatsProperty()
     {
         if (!$this->selectedCall) {
@@ -181,6 +207,10 @@ new class extends Component
                 'average_score' => 0,
                 'evaluation_deadline' => null,
                 'is_window_open' => false,
+                'window_status' => 'no_window',
+                'window_message' => 'No evaluation window set',
+                'window' => null,
+                'days_remaining' => null,
             ];
         }
         
@@ -229,6 +259,35 @@ new class extends Component
         $assignedEvaluators = AssignedEvaluator::where('call_id', $this->selectedCall)->get();
         $evaluatorsCount = $assignedEvaluators->count();
         
+        // Get evaluation window status
+        $isWindowOpen = false;
+        $windowStatus = 'no_window';
+        $windowMessage = 'No evaluation window set';
+        $daysRemaining = null;
+        
+        if ($this->evaluationWindow) {
+            $now = Carbon::now();
+            if ($this->evaluationWindow->status === 'active') {
+                $isWindowOpen = true;
+                $windowStatus = 'open';
+                $daysRemaining = $this->evaluationWindow->getDaysRemainingAttribute();
+                $windowMessage = "Evaluation window is OPEN";
+                if ($daysRemaining !== null) {
+                    $windowMessage .= " · {$daysRemaining} days remaining";
+                }
+            } elseif ($this->evaluationWindow->status === 'draft') {
+                $windowStatus = 'upcoming';
+                $daysUntilOpen = $this->evaluationWindow->getDaysUntilOpenAttribute();
+                $windowMessage = "Evaluation window opens on " . $this->evaluationWindow->open_date->format('M d, Y');
+                if ($daysUntilOpen !== null) {
+                    $windowMessage .= " · {$daysUntilOpen} days from now";
+                }
+            } elseif ($this->evaluationWindow->status === 'expired') {
+                $windowStatus = 'expired';
+                $windowMessage = "Evaluation window closed on " . $this->evaluationWindow->close_date->format('M d, Y');
+            }
+        }
+        
         return [
             'total_applications' => $totalApps,
             'fully_scored_count' => $fullyScoredCount,
@@ -237,9 +296,14 @@ new class extends Component
             'evaluators_count' => $evaluatorsCount,
             'average_score' => $averageScore,
             'evaluation_deadline' => $assignedEvaluators->first()?->evaluation_deadline,
-            'is_window_open' => $call && $call->status === 'open',
+            'is_window_open' => $isWindowOpen,
+            'window_status' => $windowStatus,
+            'window_message' => $windowMessage,
+            'window' => $this->evaluationWindow,
+            'days_remaining' => $daysRemaining,
         ];
     }
+    
     /**
      * Get the selected cohort name
      */
@@ -267,6 +331,66 @@ new class extends Component
     }
 
     /**
+     * Get button text based on window status
+     */
+    public function getWindowButtonTextProperty()
+    {
+        if (!$this->evaluationWindow) {
+            return 'Set Window';
+        }
+        
+        if ($this->evaluationWindow->status === 'active') {
+            return 'Edit Window';
+        } elseif ($this->evaluationWindow->status === 'draft') {
+            return 'Edit Window';
+        } elseif ($this->evaluationWindow->status === 'expired') {
+            return 'Create New Window';
+        }
+        
+        return 'Set Window';
+    }
+    
+    /**
+     * Get button icon based on window status
+     */
+    public function getWindowButtonIconProperty()
+    {
+        if (!$this->evaluationWindow) {
+            return 'bi-calendar-plus';
+        }
+        
+        if ($this->evaluationWindow->status === 'active') {
+            return 'bi-pencil-square';
+        } elseif ($this->evaluationWindow->status === 'draft') {
+            return 'bi-lock';
+        } elseif ($this->evaluationWindow->status === 'expired') {
+            return 'bi-plus-circle';
+        }
+        
+        return 'bi-calendar-plus';
+    }
+    
+    /**
+     * Get banner class based on window status
+     */
+    public function getWindowBannerClassProperty()
+    {
+        if (!$this->evaluationWindow) {
+            return 'alert-secondary';
+        }
+        
+        if ($this->evaluationWindow->status === 'active') {
+            return 'alert-success';
+        } elseif ($this->evaluationWindow->status === 'draft') {
+            return 'alert-warning';
+        } elseif ($this->evaluationWindow->status === 'expired') {
+            return 'alert-danger';
+        }
+        
+        return 'alert-secondary';
+    }
+
+    /**
      * Load calls when cohort changes
      */
     public function updatedSelectedCohort()
@@ -276,6 +400,7 @@ new class extends Component
         
         if ($this->calls->isNotEmpty()) {
             $this->selectedCall = $this->calls->first()->id;
+            $this->loadEvaluationWindow();
         }
     }
 
@@ -285,6 +410,7 @@ new class extends Component
     public function updatedSelectedCall()
     {
         $this->resetPage();
+        $this->loadEvaluationWindow();
     }
 
     public function updatedSearch()
@@ -342,13 +468,20 @@ new class extends Component
                 <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
                     <i class="bi bi-download me-1"></i>Export Scorings
                 </button>
-                <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
-                        wire:click="openAssignEvaluatorModal">
-                    <i class="bi bi-person-plus me-1"></i>Assign Evaluators
-                </button>
-                <button class="btn btn-sm btn-warning d-flex align-items-center gap-1">
-                    <i class="bi bi-lock"></i> Lock Window
-                </button>
+               @can('create Calls for Applications')
+                    <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                            wire:click="openAssignEvaluatorModal">
+                        <i class="bi bi-person-plus me-1"></i>Assign Evaluators
+                    </button>
+
+                    <button 
+                        type="button"
+                        wire:click="lockWindow"
+                        class="btn btn-sm btn-warning d-flex align-items-center gap-1">
+                        <i class="bi {{ $this->windowButtonIcon }}"></i> 
+                        {{ $this->windowButtonText }}
+                    </button>
+                @endcan
             </div>
         </div>
 
@@ -412,83 +545,107 @@ new class extends Component
 
         {{-- EVALUATION WINDOW BANNER --}}
         @if($selectedCall)
-            <div class="alert {{ $this->stats['is_window_open'] ? 'alert-success' : 'alert-secondary' }} d-flex align-items-center gap-3 mb-4 shadow-sm">
-                <i class="bi {{ $this->stats['is_window_open'] ? 'bi-unlock-fill' : 'bi-lock-fill' }} fs-4"></i>
+            <div class="alert {{ $this->windowBannerClass }} d-flex align-items-center gap-3 mb-4 shadow-sm">
+                <i class="bi 
+                    @if($this->stats['window_status'] == 'open') bi-unlock-fill 
+                    @elseif($this->stats['window_status'] == 'upcoming') bi-clock-history 
+                    @elseif($this->stats['window_status'] == 'expired') bi-calendar-x 
+                    @else bi-calendar2-week 
+                    @endif fs-4">
+                </i>
                 <div class="flex-grow-1">
                     <div class="fw-semibold">
-                        Evaluation Window is {{ $this->stats['is_window_open'] ? 'OPEN' : 'CLOSED' }}
+                        {{ $this->stats['window_message'] }}
                     </div>
-                    <small>
-                        @if($this->stats['evaluation_deadline'])
-                            Deadline: {{ \Carbon\Carbon::parse($this->stats['evaluation_deadline'])->format('d M Y') }}
-                        @else
-                            No deadline set
-                        @endif
-                    </small>
+                    @if($this->stats['window'] && $this->stats['window_status'] != 'no_window')
+                        <small>
+                            <i class="bi bi-calendar-range me-1"></i>
+                            {{ \Carbon\Carbon::parse($this->stats['window']->open_date)->format('M d, Y') }} - 
+                            {{ \Carbon\Carbon::parse($this->stats['window']->close_date)->format('M d, Y') }}
+                            @if($this->stats['window']->notes)
+                                <span class="ms-2">· {{ $this->stats['window']->notes }}</span>
+                            @endif
+                        </small>
+                    @endif
                 </div>
-                <span class="badge {{ $this->stats['is_window_open'] ? 'bg-success' : 'bg-secondary' }}">
-                    {{ $this->stats['is_window_open'] ? 'Active' : 'Inactive' }}
+                <span class="badge 
+                    @if($this->stats['window_status'] == 'open') bg-success
+                    @elseif($this->stats['window_status'] == 'upcoming') bg-warning text-dark
+                    @elseif($this->stats['window_status'] == 'expired') bg-secondary
+                    @else bg-info
+                    @endif">
+                    @if($this->stats['window_status'] == 'open') Active
+                    @elseif($this->stats['window_status'] == 'upcoming') Upcoming
+                    @elseif($this->stats['window_status'] == 'expired') Expired
+                    @else Not Set
+                    @endif
                 </span>
             </div>
         @endif
 
         {{-- KPI STRIP (Clickable Filters) --}}
-        {{-- KPI STRIP (Clickable Filters) --}}
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-sm-4 col-md-2">
-                <div class="kpi-mini card border-0 shadow-sm {{ !$scoreStatusFilter || $scoreStatusFilter == 'all' ? 'kpi-active' : '' }}" 
-                    wire:click="setFilter('all')">
-                    <div class="card-body p-3 text-center">
-                        <div class="fw-bold fs-4 lh-1 text-dark">{{ $this->stats['total_applications'] }}</div>
-                        <small class="text-muted">All Apps</small>
+        @can('view Analytics & Reporting')
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-sm-4 col-md-2">
+                    <div class="kpi-mini card border-0 shadow-sm {{ !$scoreStatusFilter || $scoreStatusFilter == 'all' ? 'kpi-active' : '' }}" 
+                        wire:click="setFilter('all')">
+                        <div class="card-body p-3 text-center">
+                            <div class="fw-bold fs-4 lh-1 text-dark">{{ $this->stats['total_applications'] }}</div>
+                            <small class="text-muted">All Apps</small>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-6 col-sm-4 col-md-2">
-                <div class="kpi-mini card border-0 shadow-sm {{ $scoreStatusFilter == 'not_scored' ? 'kpi-active' : '' }}" 
-                    wire:click="setFilter('not_scored')">
-                    <div class="card-body p-3 text-center">
-                        <div class="fw-bold fs-4 lh-1 text-warning">{{ $this->stats['not_scored_count'] }}</div>
-                        <small class="text-muted">Not Scored</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-sm-4 col-md-2">
-                <div class="kpi-mini card border-0 shadow-sm {{ $scoreStatusFilter == 'partially_scored' ? 'kpi-active' : '' }}" 
-                    wire:click="setFilter('partially_scored')">
-                    <div class="card-body p-3 text-center">
-                        <div class="fw-bold fs-4 lh-1 text-info">{{ $this->stats['partially_scored_count'] }}</div>
-                        <small class="text-muted">Partial</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-sm-4 col-md-2">
-                <div class="kpi-mini card border-0 shadow-sm {{ $scoreStatusFilter == 'fully_scored' ? 'kpi-active' : '' }}" 
-                    wire:click="setFilter('fully_scored')">
-                    <div class="card-body p-3 text-center">
-                        <div class="fw-bold fs-4 lh-1 text-success">{{ $this->stats['fully_scored_count'] }}</div>
-                        <small class="text-muted">Fully Scored</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-sm-4 col-md-2">
-                <div class="kpi-mini card border-0 shadow-sm">
-                    <div class="card-body p-3 text-center">
-                        <div class="fw-bold fs-4 lh-1 text-primary">{{ $this->stats['evaluators_count'] }}</div>
-                        <small class="text-muted">Evaluators</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-sm-4 col-md-2">
-                <div class="kpi-mini card border-0 shadow-sm">
-                    <div class="card-body p-3 text-center">
-                        <div class="fw-bold fs-4 lh-1 text-secondary">{{ $this->stats['average_score'] }}/100</div>
-                        <small class="text-muted">Avg Score</small>
-                    </div>
-                </div>
-            </div>
-        </div>
 
+                <div class="col-6 col-sm-4 col-md-2">
+                    <div class="kpi-mini card border-0 shadow-sm {{ $scoreStatusFilter == 'not_scored' ? 'kpi-active' : '' }}" 
+                        wire:click="setFilter('not_scored')">
+                        <div class="card-body p-3 text-center">
+                            <div class="fw-bold fs-4 lh-1 text-warning">{{ $this->stats['not_scored_count'] }}</div>
+                            <small class="text-muted">Not Scored</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-sm-4 col-md-2">
+                    <div class="kpi-mini card border-0 shadow-sm {{ $scoreStatusFilter == 'partially_scored' ? 'kpi-active' : '' }}" 
+                        wire:click="setFilter('partially_scored')">
+                        <div class="card-body p-3 text-center">
+                            <div class="fw-bold fs-4 lh-1 text-info">{{ $this->stats['partially_scored_count'] }}</div>
+                            <small class="text-muted">Partial</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-sm-4 col-md-2">
+                    <div class="kpi-mini card border-0 shadow-sm {{ $scoreStatusFilter == 'fully_scored' ? 'kpi-active' : '' }}" 
+                        wire:click="setFilter('fully_scored')">
+                        <div class="card-body p-3 text-center">
+                            <div class="fw-bold fs-4 lh-1 text-success">{{ $this->stats['fully_scored_count'] }}</div>
+                            <small class="text-muted">Fully Scored</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-sm-4 col-md-2">
+                    <div class="kpi-mini card border-0 shadow-sm">
+                        <div class="card-body p-3 text-center">
+                            <div class="fw-bold fs-4 lh-1 text-primary">{{ $this->stats['evaluators_count'] }}</div>
+                            <small class="text-muted">Evaluators</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-sm-4 col-md-2">
+                    <div class="kpi-mini card border-0 shadow-sm">
+                        <div class="card-body p-3 text-center">
+                            <div class="fw-bold fs-4 lh-1 text-secondary">{{ $this->stats['average_score'] }}/100</div>
+                            <small class="text-muted">Avg Score</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endcan
+        
         {{-- FILTER BAR --}}
         <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
             <div class="d-flex align-items-center gap-1 text-muted small">
@@ -525,8 +682,10 @@ new class extends Component
                                 <th class="py-3">Sector</th>
                                 <th class="py-3 text-center">Evaluators</th>
                                 <th class="py-3 text-center" style="width:130px;">Progress</th>
-                                <th class="py-3 text-center">Final Score</th>
-                                <th class="py-3 text-center">My Score</th>
+                                @if(auth()->user()->hasRole('Evaluation Officer'))
+                                    <th class="py-3 text-center">Final Score</th>
+                                    <th class="py-3 text-center">My Score</th>
+                                @endif
                                 <th class="py-3">Status</th>
                                 <th class="py-3 text-center">Action</th>
                             </tr>
@@ -582,8 +741,8 @@ new class extends Component
                                                     ->exists();
                                             @endphp
                                             <div class="ev-avatar {{ $hasScored ? 'bg-success text-white' : 'bg-light text-muted border' }}" 
-                                                 title="{{ $eval->evaluator->name ?? 'Evaluator' }} {{ $hasScored ? '- Scored' : '- Not Scored' }}">
-                                                {{ substr($eval->evaluator->name ?? 'E', 0, 2) }}
+                                                 title="{{ $eval->evaluator->username ?? 'Evaluator' }} {{ $hasScored ? '- Scored' : '- Not Scored' }}">
+                                                {{ substr($eval->evaluator->username ?? 'E', 0, 2) }}
                                             </div>
                                         @endforeach
                                     </div>
@@ -606,22 +765,25 @@ new class extends Component
                                         <span class="text-muted small">—</span>
                                     @endif
                                 </div>
-                                <td class="text-center">
-                                    @if($myScore)
-                                        <span class="badge bg-primary bg-opacity-15 text-white fw-bold">{{ round($myScore) }}/100</span>
-                                    @else
-                                        <span class="badge bg-warning bg-opacity-15 text-warning">Pending</span>
-                                    @endif
-                                </div>
-                                <td class="text-center">
-                                    @if($scoreStatus == 'submitted')
-                                        <span class="badge rounded-pill bg-success text-white">Scored</span>
-                                    @elseif($scoreStatus == 'draft')
-                                        <span class="badge rounded-pill bg-info text-white">In Progress</span>
-                                    @else
-                                        <span class="badge rounded-pill bg-warning text-dark">Not Scored</span>
-                                    @endif
-                                </div>
+                               @if(auth()->user()->hasRole('Evaluation Officer'))
+                                    <td class="text-center">
+                                        @if($myScore)
+                                            <span class="badge bg-primary bg-opacity-15 text-white fw-bold">{{ round($myScore) }}/100</span>
+                                        @else
+                                            <span class="badge bg-warning bg-opacity-15 text-white">Pending</span>
+                                        @endif
+                                    </div>
+
+                                    <td class="text-center">
+                                        @if($scoreStatus == 'submitted')
+                                            <span class="badge rounded-pill bg-success text-white">Scored</span>
+                                        @elseif($scoreStatus == 'draft')
+                                            <span class="badge rounded-pill bg-info text-white">In Progress</span>
+                                        @else
+                                            <span class="badge rounded-pill bg-warning text-white">Not Scored</span>
+                                        @endif
+                                    </div>
+                                @endif
                                <td class="text-center">
                                     @php
                                         $userScore = $app->evaluationScores()
@@ -635,8 +797,9 @@ new class extends Component
                                     @endphp
                                     
                                     @if(!$isAssigned)
-                                        <button class="btn btn-sm btn-secondary py-1 px-3" disabled>
-                                            <i class="bi bi-lock me-1"></i>Not Assigned
+                                        <button class="btn btn-sm btn-outline-secondary py-1 px-3" 
+                                                wire:click="openScoreModal({{ $app->id }})">
+                                            <i class="bi bi-eye me-1"></i>View Score
                                         </button>
                                     @else
                                         <button class="btn btn-sm {{ $isSubmitted ? 'btn-outline-secondary' : ($hasDraft ? 'btn-warning' : 'btn-primary') }} py-1 px-3" 
@@ -651,14 +814,14 @@ new class extends Component
                                         </button>
                                     @endif
                                 </td>
-                            </tr>
+                            </div>
                             @empty
                             <tr>
                                 <td colspan="8" class="text-center py-5 text-muted">
                                     <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
                                     No eligible applications found for this call.
                                 </div>
-                            </tr>
+                            </div>
                             @endforelse
                         </tbody>
                     </table>
@@ -674,4 +837,5 @@ new class extends Component
             </div>
         </div>
     </div>
+    <livewire:evaluations.modals.evaluation-period/>
 </div>

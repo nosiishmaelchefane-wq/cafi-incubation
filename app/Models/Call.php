@@ -201,4 +201,29 @@ class Call extends Model
             $assignment->update(['assigned_applications_count' => $eligibleCount]);
         }
     }
+
+
+    /**
+     * Get all evaluation windows for this call
+     */
+    public function evaluationWindows(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(EvaluationWindow::class);
+    }
+
+    /**
+     * Get the current active evaluation window
+     */
+    public function currentEvaluationWindow(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(EvaluationWindow::class, 'current_evaluation_window_id');
+    }
+
+    /**
+     * Get the latest evaluation window
+     */
+    public function latestEvaluationWindow(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(EvaluationWindow::class)->latest();
+    }
 }

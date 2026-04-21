@@ -275,8 +275,7 @@ new class extends Component
                     @endif
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
-                     @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
-
+                    @can('approve Calls for Applications')
                         @if($call->status === 'draft')
                             <button class="btn cds-btn-outline-success btn-sm"
                                     onclick="if(confirm('Are you sure you want to publish this call? It will become visible to applicants.')) { @this.publishCall({{ $call->id }}) }">
@@ -284,7 +283,9 @@ new class extends Component
                                 Publish
                             </button>
                         @endif
+                    @endcan
 
+                    @can('approve Calls for Applications')
                         @if($call->status === 'published')
                             <button class="btn cds-btn-outline-success btn-sm"
                                     onclick="if(confirm('Are you sure you want to open this call? Applications will be accepted.')) { @this.openCall({{ $call->id }}) }">
@@ -292,7 +293,9 @@ new class extends Component
                                 Open Call
                             </button>
                         @endif
+                    @endcan
 
+                    @can('close Calls for Applications')
                         @if($call->status === 'open')
                             <button class="btn cds-btn-outline-warning btn-sm"
                                     onclick="if(confirm('Are you sure you want to close this call? Applications will no longer be accepted.')) { @this.closeCall({{ $call->id }}) }">
@@ -300,22 +303,21 @@ new class extends Component
                                 Close Call
                             </button>
                         @endif
+                    @endcan
 
-                        @if($call->status === 'open')
-                            <button class="btn cds-btn-primary btn-sm" wire:click="$dispatch('edit-call', { id: {{ $call->id }} })">
-                                <i class="bi bi-pencil-fill me-1"></i>Edit Call
-                            </button>
-                        @endif
-
-                    @endif
+                        @can('edit Calls for Applications')
+                        <button class="btn cds-btn-primary btn-sm" wire:click="$dispatch('edit-call', { id: {{ $call->id }} })">
+                            <i class="bi bi-pencil-fill me-1"></i>Edit Call
+                        </button>
+                    @endcan
                     @if($call->status === 'open')
-                        @if(auth()->check() && auth()->user()->hasRole('Applicant'))
+                        @can('create Applications')
                             <button class="btn cds-btn-primary btn-sm" 
                                     data-bs-toggle="modal" 
                                     data-bs-target="#incubationApplicationModal">
                                 <i class="bi bi-link-45deg me-1"></i> Apply
                             </button>
-                        @endif
+                        @endcan
                     @endif
                
                 </div>
@@ -334,9 +336,35 @@ new class extends Component
             <div class="cds-hero-divider my-4"></div>
 
             <!-- KPI Cards - Conditionally visible based on role -->
-            @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
-                <!-- All stats visible to Super Admin -->
-                <div class="row g-3">
+            <div class="row g-3">
+
+                <!-- ALWAYS VISIBLE: Days Remaining -->
+                <div class="col-12 col-md-3">
+                    <div class="cds-kpi">
+                        <div class="cds-kpi-icon" style="background:rgba(16,185,129,0.12); color:#10b981;">
+                            <i class="bi bi-calendar-check-fill"></i>
+                        </div>
+                        <div>
+                            <div class="cds-kpi-val text-success">
+                                @if($call->status === 'open' && $call->days_remaining)
+                                    {{ (int) $call->days_remaining }}d
+                                @else
+                                    —
+                                @endif
+                            </div>
+                            <div class="cds-kpi-label">
+                                {{ $call->status === 'open' ? 'Days Remaining' : 'Window Closed' }}
+                            </div>
+                            <div class="cds-kpi-sub">
+                                Closes {{ $call->close_date ? $call->close_date->format('d M Y') : 'N/A' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PERMISSION-BASED: Analytics -->
+                @can('view Analytics & Reporting')
+
                     <div class="col-6 col-md-3">
                         <div class="cds-kpi">
                             <div class="cds-kpi-icon" style="background:rgba(59,130,246,0.12); color:#3b82f6;">
@@ -349,26 +377,7 @@ new class extends Component
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="cds-kpi">
-                            <div class="cds-kpi-icon" style="background:rgba(16,185,129,0.12); color:#10b981;">
-                                <i class="bi bi-calendar-check-fill"></i>
-                            </div>
-                            <div>
-                                <div class="cds-kpi-val text-success">
-                                    @if($call->status === 'open' && $call->days_remaining)
-                                        {{ (int) $call->days_remaining }}d
-                                    @else
-                                        —
-                                    @endif
-                                </div>
-                                <div class="cds-kpi-label">
-                                    {{ $call->status === 'open' ? 'Days Remaining' : 'Window Closed' }}
-                                </div>
-                                <div class="cds-kpi-sub">Closes {{ $call->close_date ? $call->close_date->format('d M Y') : 'N/A' }}</div>
-                            </div>
-                        </div>
-                    </div>
+
                     <div class="col-6 col-md-3">
                         <div class="cds-kpi">
                             <div class="cds-kpi-icon" style="background:rgba(245,158,11,0.12); color:#f59e0b;">
@@ -381,6 +390,7 @@ new class extends Component
                             </div>
                         </div>
                     </div>
+
                     <div class="col-6 col-md-3">
                         <div class="cds-kpi">
                             <div class="cds-kpi-icon" style="background:rgba(139,92,246,0.12); color:#8b5cf6;">
@@ -393,62 +403,15 @@ new class extends Component
                             </div>
                         </div>
                     </div>
-                </div>
-            @elseif(auth()->check() && auth()->user()->hasRole('Applicant'))
-                <!-- Only Days Remaining visible to Applicant -->
-                <div class="row g-3">
-                    <div class="col-12">
-                        <div class="cds-kpi">
-                            <div class="cds-kpi-icon" style="background:rgba(16,185,129,0.12); color:#10b981;">
-                                <i class="bi bi-calendar-check-fill"></i>
-                            </div>
-                            <div>
-                                <div class="cds-kpi-val text-success">
-                                    @if($call->status === 'open' && $call->days_remaining)
-                                        {{ (int) $call->days_remaining }}d
-                                    @else
-                                        —
-                                    @endif
-                                </div>
-                                <div class="cds-kpi-label">
-                                    {{ $call->status === 'open' ? 'Days Remaining to Apply' : 'Application Window Closed' }}
-                                </div>
-                                <div class="cds-kpi-sub">Closes {{ $call->close_date ? $call->close_date->format('d M Y') : 'N/A' }}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @else
-                <!-- For other roles or guests, show minimal info -->
-                <div class="row g-3">
-                    <div class="col-12">
-                        <div class="cds-kpi">
-                            <div class="cds-kpi-icon" style="background:rgba(16,185,129,0.12); color:#10b981;">
-                                <i class="bi bi-calendar-check-fill"></i>
-                            </div>
-                            <div>
-                                <div class="cds-kpi-val text-success">
-                                    @if($call->status === 'open' && $call->days_remaining)
-                                        {{ (int) $call->days_remaining }}d
-                                    @else
-                                        —
-                                    @endif
-                                </div>
-                                <div class="cds-kpi-label">
-                                    {{ $call->status === 'open' ? 'Days Remaining' : 'Window Closed' }}
-                                </div>
-                                <div class="cds-kpi-sub">Closes {{ $call->close_date ? $call->close_date->format('d M Y') : 'N/A' }}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @endif
+
+                @endcan
+
+            </div>
         </div>
     </div>
+    @can('view Analytics & Reporting')
 
-    
-    @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
-        <!-- PIPELINE STRIP (static) - Only visible to Super Admin -->
+        <!-- PIPELINE STRIP -->
         <div class="cds-card mb-4">
             <div class="cds-card-header d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
@@ -457,60 +420,70 @@ new class extends Component
                 </div>
                 <span class="cds-badge-muted small">Real-time stage counts</span>
             </div>
+
             <div class="cds-card-body px-4 py-3">
                 <div class="d-flex align-items-center gap-1 overflow-auto pb-1">
+
                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
                         <div class="cds-pipe-step cds-pipe-active">
                             <div class="cds-pipe-num">{{ $applicationsCount }}</div>
                             <div class="cds-pipe-name">Submitted</div>
                         </div>
-                        <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
+                        <i class="bi bi-chevron-right cds-pipe-arrow"></i>
                     </div>
+
                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
                         <div class="cds-pipe-step cds-pipe-active">
                             <div class="cds-pipe-num">{{ $screenedCount }}</div>
                             <div class="cds-pipe-name">Screened</div>
                         </div>
-                        <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
+                        <i class="bi bi-chevron-right cds-pipe-arrow"></i>
                     </div>
+
                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
                         <div class="cds-pipe-step cds-pipe-active">
                             <div class="cds-pipe-num">{{ $eligibleCount }}</div>
                             <div class="cds-pipe-name">Eligible</div>
                         </div>
-                        <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
+                        <i class="bi bi-chevron-right cds-pipe-arrow"></i>
                     </div>
+
                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
                         <div class="cds-pipe-step cds-pipe-active">
                             <div class="cds-pipe-num">{{ $inReviewCount }}</div>
                             <div class="cds-pipe-name">Evaluated</div>
                         </div>
-                        <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
+                        <i class="bi bi-chevron-right cds-pipe-arrow"></i>
                     </div>
+
                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
                         <div class="cds-pipe-step {{ $shortlistedCount >= 20 ? 'cds-pipe-active' : 'cds-pipe-zero' }}">
                             <div class="cds-pipe-num">{{ min(20, $shortlistedCount) }}</div>
                             <div class="cds-pipe-name">Top 20</div>
                         </div>
-                        <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
+                        <i class="bi bi-chevron-right cds-pipe-arrow"></i>
                     </div>
+
                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
                         <div class="cds-pipe-step {{ $shortlistedCount >= 10 ? 'cds-pipe-active' : 'cds-pipe-zero' }}">
                             <div class="cds-pipe-num">{{ min(10, $shortlistedCount) }}</div>
                             <div class="cds-pipe-name">Top 10</div>
                         </div>
-                        <i class="bi bi-chevron-right cds-pipe-arrow flex-shrink-0"></i>
+                        <i class="bi bi-chevron-right cds-pipe-arrow"></i>
                     </div>
+
                     <div class="d-flex align-items-center gap-1 flex-shrink-0">
                         <div class="cds-pipe-step cds-pipe-zero">
                             <div class="cds-pipe-num">0</div>
                             <div class="cds-pipe-name">Confirmed</div>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>
-    @endif
+
+    @endcan
 
 
     <!-- Main 2-Column Layout -->

@@ -225,7 +225,7 @@ new class extends Component
                 </div>
             </div>
         </div>
-        @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
+       @can('view Analytics & Reporting')
 
             <div class="col-6 col-md-3">
                 <div class="card kpi-card border-0 shadow-sm">
@@ -255,7 +255,7 @@ new class extends Component
                 </div>
             </div>
 
-        @endif
+        @endcan
     </div>
 
     {{-- ═══════════════════════════════════════
@@ -330,9 +330,9 @@ new class extends Component
                             <th class="py-3">Cohort</th>
                             <th class="py-3">Open Date</th>
                             <th class="py-3">Close Date</th>
-                                @if(auth()->check() && (auth()->user()->hasRole('Super Administrator') || auth()->user()->hasRole('Procurement Officer')))
-                                        <th class="py-3 text-center">Applications</th>
-                                @endif
+                            @can('view Analytics & Reporting')
+                                <th class="py-3 text-center">Applications</th>
+                            @endcan
                             <th class="py-3">Status</th>
                             <th class="py-3 text-center">Actions</th>
                         </tr>
@@ -349,11 +349,11 @@ new class extends Component
                             </td>
                             <td>{{ $call->open_date ? $call->open_date->format('d M Y') : '—' }}</td>
                             <td>{{ $call->close_date ? $call->close_date->format('d M Y') : '—' }}</td>
-                            @if(auth()->check() && (auth()->user()->hasRole('Super Administrator') || auth()->user()->hasRole('Procurement Officer')))
+                            @can('view Analytics & Reporting')
                                 <td class="text-center">
                                     <span class="fw-semibold">{{ $call->applications_count }}</span>
                                 </td>
-                            @endif
+                            @endcan
                             <td>
                                 @php
                                     $statusColors = [
@@ -379,39 +379,46 @@ new class extends Component
                                     </a>
 
                                     <!-- Only Super Admin -->
-                                    @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
+                            
 
-                                        <a href="#"
-                                        class="btn btn-sm btn-outline-secondary py-1 px-2"
-                                        title="Edit"
-                                        wire:click="$dispatch('edit-call', { id: {{ $call->id }} })">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
+                                        @can('edit Calls for Applications')
+                                            <a href="#"
+                                            class="btn btn-sm btn-outline-secondary py-1 px-2"
+                                            title="Edit"
+                                            wire:click="$dispatch('edit-call', { id: {{ $call->id }} })">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        @endcan
 
-                                        @if($call->status === 'draft')
-                                            <button class="btn btn-sm btn-outline-success py-1 px-2" 
-                                                    wire:click="publishCall({{ $call->id }})" 
-                                                    title="Publish"
-                                                    wire:confirm="Are you sure you want to publish this call? It will become visible to applicants.">
-                                                <i class="bi bi-broadcast"></i>
+                                        @can('approve Calls for Applications')
+
+                                            @if($call->status === 'draft')
+                                                <button class="btn btn-sm btn-outline-success py-1 px-2" 
+                                                        wire:click="publishCall({{ $call->id }})" 
+                                                        title="Publish"
+                                                        wire:confirm="Are you sure you want to publish this call? It will become visible to applicants.">
+                                                    <i class="bi bi-broadcast"></i>
+                                                </button>
+
+                                            @elseif($call->status !== 'archived' && $call->status !== 'closed')
+                                                <button class="btn btn-sm btn-outline-warning py-1 px-2" 
+                                                        title="Unpublish"
+                                                        wire:click="unpublishCall({{ $call->id }})"
+                                                        wire:confirm="Are you sure you want to unpublish this call? It will be moved back to draft.">
+                                                    <i class="bi bi-pause-circle"></i>
+                                                </button>
+                                            @endif
+
+                                        @endcan
+
+                                        @can('delete Calls for Applications')
+                                            <button class="btn btn-sm btn-outline-danger py-1 px-2" 
+                                                    title="Delete"
+                                                    wire:click="deleteCall({{ $call->id }})"
+                                                    wire:confirm="Are you sure you want to delete this call? This action cannot be undone.">
+                                                <i class="bi bi-trash3"></i>
                                             </button>
-                                        @elseif($call->status !== 'archived' && $call->status !== 'closed')
-                                            <button class="btn btn-sm btn-outline-warning py-1 px-2" 
-                                                    title="Unpublish"
-                                                    wire:click="unpublishCall({{ $call->id }})"
-                                                    wire:confirm="Are you sure you want to unpublish this call? It will be moved back to draft.">
-                                                <i class="bi bi-pause-circle"></i>
-                                            </button>
-                                        @endif
-
-                                        <button class="btn btn-sm btn-outline-danger py-1 px-2" 
-                                                title="Delete"
-                                                wire:click="deleteCall({{ $call->id }})"
-                                                wire:confirm="Are you sure you want to delete this call? This action cannot be undone.">
-                                            <i class="bi bi-trash3"></i>
-                                        </button>
-
-                                    @endif
+                                        @endcan
 
                                 </div>
                             </td>

@@ -68,7 +68,6 @@
 
             <!-- Screening & Eligibility - Super Admin and Procurement Officer only -->
             @can('view Screening & Eligibility')
-            @if(auth()->user()->hasAnyRole(['Super Administrator', 'Procurement Officer']))
             <li class="nav-item">
                 <a href="{{ route('screening.index') }}" 
                 class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('screening.*') ? 'active-nav' : '' }}" 
@@ -90,7 +89,6 @@
                     </span>
                 </a>
             </li>
-            @endif
             @endcan
 
             <!-- Evaluation & Scoring - Admin only -->

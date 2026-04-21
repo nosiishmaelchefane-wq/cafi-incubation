@@ -337,79 +337,62 @@ new class extends Component {
             <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
                 <i class="bi bi-download"></i> Export List
             </button>
-            
-            <!-- Bulk Action Dropdown -->
-            <div class="position-relative" x-on:click.away="bulkDropdownOpen = false">
-                <button @click="bulkDropdownOpen = !bulkDropdownOpen" type="button" class="btn btn-sm btn-outline-primary dropdown-toggle">
-                    <i class="bi bi-check2-square me-1"></i> Bulk Action
-                </button>
-                <div x-show="bulkDropdownOpen" x-cloak class="position-absolute top-100 end-0 mt-1 bg-white border rounded shadow-sm" style="min-width: 200px; z-index: 1000;">
-                    <a href="#" class="dropdown-item" style="display: block; padding: 0.5rem 1rem; text-decoration: none; color: #212529;">
-                        <i class="bi bi-check-circle text-success me-2"></i>Mark as Eligible
-                    </a>
-                    <a href="#" class="dropdown-item" style="display: block; padding: 0.5rem 1rem; text-decoration: none; color: #212529;">
-                        <i class="bi bi-hourglass-split text-info me-2"></i>Move to Review
-                    </a>
-                    <div class="dropdown-divider" style="margin: 0.25rem 0;"></div>
-                    <a href="#" class="dropdown-item text-danger" style="display: block; padding: 0.5rem 1rem; text-decoration: none;">
-                        <i class="bi bi-x-circle text-danger me-2"></i>Reject Selected
-                    </a>
-                </div>
-            </div>
         </div>
     </div>
 
     <!-- KPI STRIP -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-sm-4 col-md-2">
-            <div class="kpi-mini card border-0 shadow-sm {{ !$statusFilter ? 'kpi-active' : '' }}" wire:click="$set('statusFilter', '')">
-                <div class="card-body p-3 text-center">
-                    <div class="fw-bold fs-4 lh-1 text-dark">{{ $this->counts['total'] }}</div>
-                    <small class="text-muted">Total</small>
+    @can('view Analytics & Reporting')
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-sm-4 col-md-2">
+                <div class="kpi-mini card border-0 shadow-sm {{ !$statusFilter ? 'kpi-active' : '' }}" wire:click="$set('statusFilter', '')">
+                    <div class="card-body p-3 text-center">
+                        <div class="fw-bold fs-4 lh-1 text-dark">{{ $this->counts['total'] }}</div>
+                        <small class="text-muted">Total</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-sm-4 col-md-2">
+                <div class="kpi-mini card border-0 shadow-sm {{ $statusFilter == 'submitted' ? 'kpi-active' : '' }}" wire:click="$set('statusFilter', 'submitted')">
+                    <div class="card-body p-3 text-center">
+                        <div class="fw-bold fs-4 lh-1 text-warning">{{ $this->counts['submitted'] }}</div>
+                        <small class="text-muted">Submitted</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-sm-4 col-md-2">
+                <div class="kpi-mini card border-0 shadow-sm {{ $statusFilter == 'in_review' ? 'kpi-active' : '' }}" wire:click="$set('statusFilter', 'in_review')">
+                    <div class="card-body p-3 text-center">
+                        <div class="fw-bold fs-4 lh-1 text-info">{{ $this->counts['inReview'] }}</div>
+                        <small class="text-muted">In Review</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-sm-4 col-md-2">
+                <div class="kpi-mini card border-0 shadow-sm {{ $statusFilter == 'eligible' ? 'kpi-active' : '' }}" wire:click="$set('statusFilter', 'eligible')">
+                    <div class="card-body p-3 text-center">
+                        <div class="fw-bold fs-4 lh-1 text-success">{{ $this->counts['eligible'] }}</div>
+                        <small class="text-muted">Eligible</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-sm-4 col-md-2">
+                <div class="kpi-mini card border-0 shadow-sm {{ $statusFilter == 'rejected' ? 'kpi-active' : '' }}" wire:click="$set('statusFilter', 'rejected')">
+                    <div class="card-body p-3 text-center">
+                        <div class="fw-bold fs-4 lh-1 text-danger">{{ $this->counts['rejected'] }}</div>
+                        <small class="text-muted">Rejected</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-sm-4 col-md-2">
+                <div class="kpi-mini card border-0 shadow-sm">
+                    <div class="card-body p-3 text-center">
+                        <div class="fw-bold fs-4 lh-1 text-primary">{{ $this->counts['completionPct'] }}%</div>
+                        <small class="text-muted">Screened</small>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-6 col-sm-4 col-md-2">
-            <div class="kpi-mini card border-0 shadow-sm {{ $statusFilter == 'submitted' ? 'kpi-active' : '' }}" wire:click="$set('statusFilter', 'submitted')">
-                <div class="card-body p-3 text-center">
-                    <div class="fw-bold fs-4 lh-1 text-warning">{{ $this->counts['submitted'] }}</div>
-                    <small class="text-muted">Submitted</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-sm-4 col-md-2">
-            <div class="kpi-mini card border-0 shadow-sm {{ $statusFilter == 'in_review' ? 'kpi-active' : '' }}" wire:click="$set('statusFilter', 'in_review')">
-                <div class="card-body p-3 text-center">
-                    <div class="fw-bold fs-4 lh-1 text-info">{{ $this->counts['inReview'] }}</div>
-                    <small class="text-muted">In Review</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-sm-4 col-md-2">
-            <div class="kpi-mini card border-0 shadow-sm {{ $statusFilter == 'eligible' ? 'kpi-active' : '' }}" wire:click="$set('statusFilter', 'eligible')">
-                <div class="card-body p-3 text-center">
-                    <div class="fw-bold fs-4 lh-1 text-success">{{ $this->counts['eligible'] }}</div>
-                    <small class="text-muted">Eligible</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-sm-4 col-md-2">
-            <div class="kpi-mini card border-0 shadow-sm {{ $statusFilter == 'rejected' ? 'kpi-active' : '' }}" wire:click="$set('statusFilter', 'rejected')">
-                <div class="card-body p-3 text-center">
-                    <div class="fw-bold fs-4 lh-1 text-danger">{{ $this->counts['rejected'] }}</div>
-                    <small class="text-muted">Rejected</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-sm-4 col-md-2">
-            <div class="kpi-mini card border-0 shadow-sm">
-                <div class="card-body p-3 text-center">
-                    <div class="fw-bold fs-4 lh-1 text-primary">{{ $this->counts['completionPct'] }}%</div>
-                    <small class="text-muted">Screened</small>
-                </div>
-            </div>
-        </div>
-    </div>
+        @endcan
 
     <!-- Progress Bar -->
     <div class="card border-0 shadow-sm mb-4">

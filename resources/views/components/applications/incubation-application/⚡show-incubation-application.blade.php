@@ -155,21 +155,21 @@ new class extends Component
                 <div class="d-flex gap-2 flex-wrap">
                     <a href="#" class="btn app-btn-ghost btn-sm"><i class="bi bi-download me-1"></i>Export PDF</a>
                     <!-- Only Super Admin -->
-                    @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
+                    @can('view Screening & Eligibility')
                         <a href="#" class="btn app-btn-ghost btn-sm">
                             <i class="bi bi-funnel me-1"></i>Go to Screening
                         </a>
-                    @endif
+                    @endcan
 
                     <!-- Only Applicant -->
-                    @if(auth()->check() && auth()->user()->hasRole('Applicant'))
+                   @can('edit Applications')
                         <a href="#"
                         class="btn app-btn-primary btn-sm"
                         wire:click="openEditModal({{ $application->id }})">
                             <i class="bi bi-pencil-fill me-1"></i>
                             Edit Application
                         </a>
-                    @endif
+                    @endcan
                 </div>
             </div>
 
@@ -626,9 +626,6 @@ new class extends Component
                                     <span class="app-pdo-flag {{ ($application->number_youth_shareholders ?? 0) > 0 ? 'pdo-flag-active-green' : 'pdo-flag-inactive' }}">
                                         <i class="bi bi-person-fill me-1"></i>Youth-owned
                                     </span>
-                                    <span class="app-pdo-flag {{ $this->isRuralBased ? 'pdo-flag-active-amber' : 'pdo-flag-inactive' }}">
-                                        <i class="bi bi-tree me-1"></i>Rural-based
-                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -739,32 +736,34 @@ new class extends Component
                     </div>
                     <div class="app-card-body p-3">
                         <div class="d-flex flex-column gap-2">
-                            @if(auth()->check() && auth()->user()->hasRole('Super Administrator'))
+                            @can('view Screening & Eligibility')
                                 <a href="#" class="btn app-action-link text-start">
                                     <i class="bi bi-funnel-fill me-2 text-warning"></i>
                                     <span>Review Screening</span>
                                     <i class="bi bi-chevron-right ms-auto text-muted"></i>
                                 </a>
+                            @endcan
 
+                            @can('view Evaluation & Scoring')
                                 <a href="#" class="btn app-action-link text-start">
                                     <i class="bi bi-clipboard2-data-fill me-2 text-primary"></i>
                                     <span>Go to Evaluation</span>
                                     <i class="bi bi-chevron-right ms-auto text-muted"></i>
                                 </a>
-
-                            @endif
-                            @if(auth()->check() && auth()->user()->hasRole('Applicant') && $application->status === 'Draft')
-                                <a href="#" 
-                                class="btn app-action-link text-start"
-                                wire:click.prevent="openEditModal({{ $application->id }})">
-                                    <i class="bi bi-pencil-fill me-2 text-info"></i>
-                                    <span>Edit Application</span>
-                                    <i class="bi bi-chevron-right ms-auto text-muted"></i>
-                                </a>
-                            @endif
+                            @endcan
+                            @can('edit Applications')
+                                @if($application->status === 'Draft')
+                                    <a href="#" 
+                                    class="btn app-action-link text-start"
+                                    wire:click.prevent="openEditModal({{ $application->id }})">
+                                        <i class="bi bi-pencil-fill me-2 text-info"></i>
+                                        <span>Edit Application</span>
+                                        <i class="bi bi-chevron-right ms-auto text-muted"></i>
+                                    </a>
+                                @endif
+                            @endcan
                             <hr class="my-1">
-                           @if(auth()->check() && auth()->user()->hasAnyRole(['Super Administrator', 'Applicant']))
-
+                            @can('delete Applications')
                                 @if($application->status === 'draft')
                                     <button 
                                         class="btn app-action-link app-action-danger text-start w-100"
@@ -787,8 +786,7 @@ new class extends Component
                                         <i class="bi bi-chevron-right ms-auto text-muted"></i>
                                     </button>
                                 @endif
-
-                            @endif
+                            @endcan
                         </div>
                     </div>
                 </div>

@@ -34,9 +34,6 @@ new class extends Component
     public $social_risk_mitigation = 0;
     public $totalScore = 0;
     public $evaluator_comments = '';
-    public $evaluator_name = '';
-    public $evaluation_date = '';
-    public $evaluation_location = '';
     
     #[On('openScoreModal')]
     public function openModal($applicationId = null)
@@ -99,9 +96,6 @@ new class extends Component
             $this->social_risk_mitigation = $this->existingScore->social_risk_mitigation;
             $this->totalScore = $this->existingScore->total_score;
             $this->evaluator_comments = $this->existingScore->evaluator_comments ?? '';
-            $this->evaluator_name = $this->existingScore->evaluator_name ?? Auth::user()->name;
-            $this->evaluation_date = $this->existingScore->evaluation_date ?? now()->format('Y-m-d');
-            $this->evaluation_location = $this->existingScore->evaluation_location ?? 'Maseru, Lesotho';
         } else {
             $this->evaluator_name = Auth::user()->name;
             $this->evaluation_date = now()->format('Y-m-d');
@@ -206,9 +200,6 @@ new class extends Component
                 'social_risk_mitigation' => $this->social_risk_mitigation,
                 'total_score' => $this->totalScore,
                 'evaluator_comments' => $this->evaluator_comments,
-                'evaluator_name' => $this->evaluator_name,
-                'evaluation_date' => $this->evaluation_date,
-                'evaluation_location' => $this->evaluation_location,
                 'status' => 'submitted',
                 'submitted_at' => now(),
                 'submitted_by' => Auth::id(),
@@ -599,21 +590,6 @@ new class extends Component
                     <div class="mt-4">
                         <label class="form-label fw-medium small">Evaluator Comments</label>
                         <textarea class="form-control small" rows="3" placeholder="Add your evaluation comments here..." wire:model="evaluator_comments" {{ $isLocked ? 'disabled' : '' }}></textarea>
-                    </div>
-
-                    <div class="mt-3 row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-medium small">Evaluator Name</label>
-                            <input type="text" class="form-control form-control-sm" wire:model="evaluator_name" {{ $isLocked ? 'disabled' : '' }}>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-medium small">Date</label>
-                            <input type="date" class="form-control form-control-sm" wire:model="evaluation_date" {{ $isLocked ? 'disabled' : '' }}>
-                        </div>
-                        <div class="col-md-12">
-                            <label class="form-label fw-medium small">Location</label>
-                            <input type="text" class="form-control form-control-sm" wire:model="evaluation_location" placeholder="e.g., Maseru, Lesotho" {{ $isLocked ? 'disabled' : '' }}>
-                        </div>
                     </div>
                     @endif
                 </div>

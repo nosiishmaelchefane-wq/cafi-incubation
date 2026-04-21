@@ -296,31 +296,37 @@ new class extends Component
             
             <!-- Status Tabs -->
             <!-- Status Tabs -->
-            @if(auth()->check() && (auth()->user()->hasRole('Super Administrator') || auth()->user()->hasRole('Procurement Officer')))
+           @can('view Analytics & Reporting')
                 <div class="cds-tab-row">
                     <button class="cds-tab-btn {{ $statusFilter === '' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', '')">
                         All <span class="cds-tab-count">{{ $this->statusCounts['all'] }}</span>
                     </button>
+
                     <button class="cds-tab-btn {{ $statusFilter === 'submitted' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', 'submitted')">
                         Submitted <span class="cds-tab-count">{{ $this->statusCounts['submitted'] }}</span>
                     </button>
+
                     <button class="cds-tab-btn {{ $statusFilter === 'in_review' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', 'in_review')">
                         In Review <span class="cds-tab-count">{{ $this->statusCounts['in_review'] }}</span>
                     </button>
+
                     <button class="cds-tab-btn {{ $statusFilter === 'eligible' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', 'eligible')">
                         Eligible <span class="cds-tab-count">{{ $this->statusCounts['eligible'] }}</span>
                     </button>
+
                     <button class="cds-tab-btn {{ $statusFilter === 'shortlisted' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', 'shortlisted')">
                         Shortlisted <span class="cds-tab-count">{{ $this->statusCounts['shortlisted'] }}</span>
                     </button>
+
                     <button class="cds-tab-btn {{ $statusFilter === 'rejected' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', 'rejected')">
                         Rejected <span class="cds-tab-count">{{ $this->statusCounts['rejected'] }}</span>
                     </button>
+
                     <button class="cds-tab-btn {{ $statusFilter === 'draft' ? 'cds-tab-active' : '' }}" wire:click="$set('statusFilter', 'draft')">
                         Draft <span class="cds-tab-count">{{ $this->statusCounts['draft'] }}</span>
                     </button>
                 </div>
-            @endif
+            @endcan
         </div>
         
         <!-- Filter Bar -->
@@ -434,14 +440,16 @@ new class extends Component
                                     <a href="{{ route('incubation.show', $app->id) }}" class="cds-action-btn" title="View">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                        @if($app->status === 'draft' && auth()->id() === $app->user_id)
+                                    @if($app->status === 'draft')
+                                        @can('create Applications')
                                             <button class="btn btn-sm btn-outline-success py-1 px-2" 
                                                     title="Submit Application"
                                                     wire:click="submitDraftApplication({{ $app->id }})"
                                                     wire:confirm="Are you sure you want to submit this application? Once submitted, you will not be able to make any further changes.">
                                                 <i class="bi bi-send-check-fill"></i>
                                             </button>
-                                        @endif
+                                        @endcan
+                                    @endif
                                 </div>
                             </td>
                         </tr>

@@ -959,17 +959,22 @@ new class extends Component
                                 <i class="bi bi-arrow-left me-1"></i>Back
                             </button>
                         @else
-                            <button class="btn btn-sm btn-outline-danger px-3" 
-                                    wire:click="confirmRejection"
-                                    wire:confirm="⚠️ WARNING: You are about to reject this application.\n\nPlease ensure you have reviewed all documents and checklist items.\n\nOnce rejected, this decision will be final and cannot be changed.\n\nDo you want to continue?">
-                                <i class="bi bi-x-circle me-1"></i>Reject
-                            </button>
-                            <button class="btn btn-sm btn-success px-3" 
-                                    wire:click="markAsEligible"
-                                    wire:confirm="✅ IMPORTANT DECISION: You are about to mark this application as ELIGIBLE.\n\nThis means:\n• The applicant will be notified of their eligibility\n• The application will move to the next stage\n• This decision will be recorded in the system\n\nOnce marked eligible, you cannot change this decision.\n\nPlease verify all documents and checklist items are complete.\n\nAre you sure you want to mark this application as ELIGIBLE?"
-                                    @if(!$this->document_stats['allVerified'] || !$this->checklist_stats['allPassed']) disabled @endif>
-                                <i class="bi bi-check-circle me-1"></i>Mark Eligible
-                            </button>
+                            @can('create Screening & Eligibility')
+                                
+                                <button class="btn btn-sm btn-outline-danger px-3" 
+                                        wire:click="confirmRejection"
+                                        wire:confirm="⚠️ WARNING: You are about to reject this application.\n\nPlease ensure you have reviewed all documents and checklist items.\n\nOnce rejected, this decision will be final and cannot be changed.\n\nDo you want to continue?">
+                                    <i class="bi bi-x-circle me-1"></i>Reject
+                                </button>
+
+                                <button class="btn btn-sm btn-success px-3" 
+                                        wire:click="markAsEligible"
+                                        wire:confirm="✅ IMPORTANT DECISION: You are about to mark this application as ELIGIBLE.\n\nThis means:\n• The applicant will be notified of their eligibility\n• The application will move to the next stage\n• This decision will be recorded in the system\n\nOnce marked eligible, you cannot change this decision.\n\nPlease verify all documents and checklist items are complete.\n\nAre you sure you want to mark this application as ELIGIBLE?"
+                                        @if(!$this->document_stats['allVerified'] || !$this->checklist_stats['allPassed']) disabled @endif>
+                                    <i class="bi bi-check-circle me-1"></i>Mark Eligible
+                                </button>
+
+                            @endcan
                         @endif
                     @endif
                 </div>

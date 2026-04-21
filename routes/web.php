@@ -9,6 +9,7 @@ use App\Http\Controllers\Screening\ScreeningController;
 use App\Http\Controllers\Evaluation\EvaluationController;
 use App\Http\Controllers\Applications\Incubation\IncubationController;
 use App\Http\Controllers\Cohorts\CohortsManagementController;
+use App\Http\Controllers\Pitches\ShortlistingController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -35,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/incubation/{id}', [IncubationController::class, 'show'])->name('incubation.show');
     Route::get('/cohorts', [CohortsManagementController::class, 'index'])->name('cohorts.index');
     Route::get('/cohort/show', [CohortsManagementController::class, 'show'])->name('cohorts.show');
+    Route::get('/shortlisting', [ShortlistingController::class, 'index'])->name('shortlisting.index');
 });
 
 require __DIR__.'/auth.php';

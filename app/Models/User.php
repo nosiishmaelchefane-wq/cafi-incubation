@@ -250,5 +250,43 @@ class User extends Authenticatable
         return $query->where('userable_type', ESO::class);
     }
 
+    // Add to app/Models/User.php
+
+    /**
+     * Get assigned evaluations (as an evaluator)
+     */
+    public function assignedEvaluations()
+    {
+        return $this->hasMany(AssignedEvaluator::class, 'user_id');
+    }
+
+    /**
+     * Check if user is assigned to a specific call
+     */
+    public function isAssignedToCall($callId)
+    {
+        return $this->assignedEvaluations()
+            ->where('call_id', $callId)
+            ->exists();
+    }
+
+    /**
+     * Get calls this evaluator is assigned to
+     */
+    public function assignedCalls()
+    {
+        return $this->belongsToMany(Call::class, 'assigned_evaluators', 'user_id', 'call_id')
+                    ->withPivot('status', 'evaluation_deadline', 'assigned_applications_count', 'scored_applications_count')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Check if user has Evaluator role
+     */
+    public function isEvaluator()
+    {
+        return $this->hasRole('Evaluator');
+    }
+
     
 }

@@ -1,0 +1,33 @@
+<?php
+// database/migrations/xxxx_xx_xx_xxxxxx_create_assigned_evaluators_table.php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('assigned_evaluators', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('call_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // evaluator user
+            $table->foreignId('assigned_by')->constrained('users')->onDelete('cascade');
+            $table->date('evaluation_deadline')->nullable();
+            $table->enum('status', ['pending', 'in_progress', 'completed'])->default('pending');
+            $table->integer('assigned_applications_count')->default(0);
+            $table->integer('scored_applications_count')->default(0);
+            $table->timestamp('assigned_at')->nullable();
+            $table->timestamps();
+            
+            // One evaluator per call only
+            $table->unique(['call_id', 'user_id']);
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('assigned_evaluators');
+    }
+};

@@ -39,7 +39,7 @@
             @endcan
 
             <!-- PRE-INCUBATION -->
-            @canany(['view Calls for Applications', 'view Applications', 'view Screening & Eligibility', 'view Evaluation & Scoring'])
+            @canany(['view Calls for Applications', 'view Applications', 'view Screening & Eligibility', 'view Evaluation & Scoring', 'view Shortlisting & Pitches'])
             <li class="nav-item mt-2">
                 <small class="section-label px-3 sidebar-text" style="color: #142552; font-weight: 700;">Pre-Incubation</small>
                 <hr class="section-divider my-1" style="display:none;">
@@ -68,7 +68,6 @@
 
             <!-- Screening & Eligibility - Super Admin and Procurement Officer only -->
             @can('view Screening & Eligibility')
-            @if(auth()->user()->hasAnyRole(['Super Administrator', 'Procurement Officer']))
             <li class="nav-item">
                 <a href="{{ route('screening.index') }}" 
                 class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('screening.*') ? 'active-nav' : '' }}" 
@@ -90,7 +89,6 @@
                     </span>
                 </a>
             </li>
-            @endif
             @endcan
 
             <!-- Evaluation & Scoring - Admin only -->
@@ -112,15 +110,32 @@
             </li>
             @endcan
 
-            <!-- Shortlisting & Pitches - Placeholder (no route yet) -->
-            @can('view Cohort Management')
+            <!-- Shortlisting & Pitches - Super Admin only -->
+
+            @if(auth()->user()->hasRole('Super Administrator'))
             <li class="nav-item">
-                <a href="#" class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav" data-tooltip="Shortlisting &amp; Pitches" style="color: #333;">
-                    <i class="bi bi-list-check fs-5 nav-icon flex-shrink-0" style="color: #142552;"></i>
-                    <span class="fw-medium sidebar-text ms-3" style="color: #142552;">Shortlisting &amp; Pitches</span>
+                <a href="{{ route('shortlisting.index') }}" 
+                class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('shortlisting.*') ? 'active-nav' : '' }}" 
+                data-tooltip="Shortlisting &amp; Pitches"
+                style="color: #333; {{ request()->routeIs('shortlisting.*') ? 'background-color: #05923b; color: white;' : '' }}">
+                    
+                    <i class="bi bi-list-check fs-5 nav-icon flex-shrink-0"
+                    style="color: {{ request()->routeIs('shortlisting.*') ? 'white' : '#142552' }};"></i>
+                    
+                    <span class="fw-medium sidebar-text ms-3 me-auto"
+                        style="color: {{ request()->routeIs('shortlisting.*') ? 'white' : '#142552' }};">
+                        Shortlisting &amp; Pitches
+                    </span>
+                    
+                    <span class="badge ms-2 sidebar-badge flex-shrink-0" 
+                        style="background-color: {{ request()->routeIs('shortlisting.*') ? 'white' : '#142552' }}; 
+                                color: {{ request()->routeIs('shortlisting.*') ? '#05923b' : 'white' }};">
+                        Admin
+                    </span>
                 </a>
             </li>
-            @endcan
+            @endif
+
 
             <!-- ACTIVE INCUBATION - Admin only (placeholders) -->
             @canany(['view Enterprise Reports', 'view ESO Reports'])

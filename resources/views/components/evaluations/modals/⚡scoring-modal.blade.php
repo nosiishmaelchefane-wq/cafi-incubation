@@ -5,7 +5,9 @@ use Livewire\Attributes\On;
 use App\Models\IncubationApplication;
 use App\Models\EvaluationScore;
 use App\Models\AssignedEvaluator;
+use App\Models\EvaluationWindow;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 new class extends Component
 {
@@ -16,6 +18,8 @@ new class extends Component
     public $activeTab = 'score';
     public $isLocked = false;
     public $isAssigned = false;
+    public $isWindowOpen = false;
+    public $windowStatus = null;
     public $existingScore = null;
     
     // Scoring data
@@ -43,6 +47,7 @@ new class extends Component
         $this->activeTab = 'score';
         
         $this->checkAssignment();
+        $this->checkWindowStatus();
         $this->loadExistingScore();
         $this->checkLocked();
         
@@ -66,6 +71,55 @@ new class extends Component
         $this->isAssigned = AssignedEvaluator::where('call_id', $this->application->call_id)
             ->where('user_id', Auth::id())
             ->exists();
+    }
+    
+    public function checkWindowStatus()
+    {
+        if (!$this->application) {
+            $this->isWindowOpen = false;
+            $this->windowStatus = 'no_window';
+            return;
+        }
+        
+        $now = Carbon::now();
+        
+        // Check for active evaluation window
+        $activeWindow = EvaluationWindow::where('call_id', $this->application->call_id)
+            ->where('status', 'active')
+            ->where('open_date', '<=', $now)
+            ->where('close_date', '>=', $now)
+            ->first();
+        
+        if ($activeWindow) {
+            $this->isWindowOpen = true;
+            $this->windowStatus = 'open';
+        } else {
+            // Check if there's a window but it's not open yet
+            $upcomingWindow = EvaluationWindow::where('call_id', $this->application->call_id)
+                ->where('status', 'draft')
+                ->where('open_date', '>', $now)
+                ->first();
+            
+            if ($upcomingWindow) {
+                $this->isWindowOpen = false;
+                $this->windowStatus = 'upcoming';
+                $this->dispatch('notify', type: 'warning', message: 'Evaluation window opens on ' . $upcomingWindow->open_date->format('M d, Y'));
+            } else {
+                $expiredWindow = EvaluationWindow::where('call_id', $this->application->call_id)
+                    ->where('status', 'expired')
+                    ->first();
+                
+                if ($expiredWindow) {
+                    $this->isWindowOpen = false;
+                    $this->windowStatus = 'expired';
+                    $this->dispatch('notify', type: 'error', message: 'Evaluation window closed on ' . $expiredWindow->close_date->format('M d, Y'));
+                } else {
+                    $this->isWindowOpen = false;
+                    $this->windowStatus = 'no_window';
+                    $this->dispatch('notify', type: 'error', message: 'No evaluation window set for this call.');
+                }
+            }
+        }
     }
     
     public function checkLocked()
@@ -96,10 +150,6 @@ new class extends Component
             $this->social_risk_mitigation = $this->existingScore->social_risk_mitigation;
             $this->totalScore = $this->existingScore->total_score;
             $this->evaluator_comments = $this->existingScore->evaluator_comments ?? '';
-        } else {
-            $this->evaluator_name = Auth::user()->name;
-            $this->evaluation_date = now()->format('Y-m-d');
-            $this->evaluation_location = 'Maseru, Lesotho';
         }
         
         $this->calculateTotalScore();
@@ -107,7 +157,7 @@ new class extends Component
     
     public function updated($property)
     {
-        if ($property !== 'activeTab' && !$this->isLocked) {
+        if ($property !== 'activeTab' && !$this->isLocked && $this->isWindowOpen) {
             $this->calculateTotalScore();
         }
     }
@@ -168,6 +218,11 @@ new class extends Component
     {
         if ($this->isLocked) {
             $this->dispatch('notify', type: 'error', message: 'This score has already been submitted and cannot be modified.');
+            return;
+        }
+        
+        if (!$this->isWindowOpen) {
+            $this->dispatch('notify', type: 'error', message: 'Cannot submit score. The evaluation window is not open.');
             return;
         }
         
@@ -239,18 +294,17 @@ new class extends Component
 
     <!-- Modal -->
     <div 
-    x-show="open"
-    x-transition
-    @keydown.escape.window="open = false; $wire.closeModal()"
-    class="fixed inset-0 z-50 flex items-start justify-center"
-    style="padding: 50px 0 0 0; margin: 0; overflow-y: auto;"
->
-       <div 
-        class="bg-white shadow-lg w-100"
-        style="width: 100vw; height: 100vh; max-width: 100vw; max-height: 100vh; display: flex; flex-direction: column; border-radius: 0;"
-        @click.stop
+        x-show="open"
+        x-transition
+        @keydown.escape.window="open = false; $wire.closeModal()"
+        class="fixed inset-0 z-50 flex items-start justify-center"
+        style="padding: 50px 0 0 0; margin: 0; overflow-y: auto;"
     >
-       
+        <div 
+            class="bg-white shadow-lg w-100"
+            style="width: 100vw; height: 100vh; max-width: 100vw; max-height: 100vh; display: flex; flex-direction: column; border-radius: 0;"
+            @click.stop
+        >
 
             <!-- Header -->
             <div class="px-5 pt-4 pb-3 d-flex justify-content-between align-items-center border-bottom">
@@ -268,13 +322,25 @@ new class extends Component
                 <button class="btn-close" @click="open = false; $wire.closeModal()"></button>
             </div>
 
-            <!-- Locked/Unauthorized Banner -->
-            @if(!$isAssigned && $application)
+            <!-- Window Status Banner -->
+            @if(!$isWindowOpen && $application)
             <div class="alert alert-danger mx-3 mt-3 mb-0">
-                <i class="bi bi-lock-fill me-2"></i>
-                You are not assigned to evaluate this application. Only assigned evaluators can score applications.
+                <i class="bi bi-calendar-x me-2"></i>
+                <strong>Evaluation Window {{ ucfirst($windowStatus) }}:</strong> 
+                @if($windowStatus == 'upcoming')
+                    The evaluation window has not opened yet. You cannot submit scores until the window opens.
+                @elseif($windowStatus == 'expired')
+                    The evaluation window has closed. No further scoring is allowed.
+                @else
+                    No evaluation window has been set for this call. Please contact an administrator.
+                @endif
             </div>
-            @elseif($isLocked)
+            @elseif(!$isAssigned && $application && $isWindowOpen)
+            <div class="alert alert-warning mx-3 mt-3 mb-0">
+                <i class="bi bi-eye me-2"></i>
+                You are not assigned to evaluate this application. You can view scores but cannot submit or edit.
+            </div>
+            @elseif($isLocked && $application)
             <div class="alert alert-secondary mx-3 mt-3 mb-0">
                 <i class="bi bi-lock-fill me-2"></i>
                 This score has already been submitted and is locked. No further changes can be made.
@@ -330,11 +396,39 @@ new class extends Component
                 
                 <!-- ==================== SCORE TAB ==================== -->
                 <div style="{{ $activeTab != 'score' ? 'display: none;' : '' }}">
-                    @if(!$isAssigned)
+                    @if(!$isWindowOpen)
+                    <div class="text-center py-5">
+                        <i class="bi bi-calendar-x fs-1 d-block mb-3 text-muted"></i>
+                        <h6 class="text-muted">Evaluation Window {{ ucfirst($windowStatus) }}</h6>
+                        <p class="small text-muted">
+                            @if($windowStatus == 'upcoming')
+                                The evaluation window has not opened yet. Scoring will be available when the window opens.
+                            @elseif($windowStatus == 'expired')
+                                The evaluation window has closed. No further scoring is allowed.
+                            @else
+                                No evaluation window has been set for this call.
+                            @endif
+                        </p>
+                        @if($existingScore && $existingScore->status == 'submitted')
+                        <div class="alert alert-info mt-3">
+                            <strong>Submitted Score:</strong> {{ $existingScore->total_score }}/100
+                            <br>
+                            <small>Submitted on: {{ $existingScore->submitted_at ? $existingScore->submitted_at->format('M d, Y') : 'N/A' }}</small>
+                        </div>
+                        @endif
+                    </div>
+                    @elseif(!$isAssigned)
                     <div class="text-center py-5">
                         <i class="bi bi-shield-lock fs-1 d-block mb-3 text-muted"></i>
-                        <h6 class="text-muted">Access Restricted</h6>
-                        <p class="small text-muted">You are not assigned to evaluate this application.</p>
+                        <h6 class="text-muted">View Only Mode</h6>
+                        <p class="small text-muted">You are not assigned to evaluate this application. You can view scores below but cannot edit or submit.</p>
+                        @if($existingScore)
+                        <div class="alert alert-info mt-3">
+                            <strong>Your Score:</strong> {{ $existingScore->total_score }}/100
+                            <br>
+                            <small>Submitted on: {{ $existingScore->submitted_at ? $existingScore->submitted_at->format('M d, Y') : 'N/A' }}</small>
+                        </div>
+                        @endif
                     </div>
                     @else
                     <div class="eval-tool-header mb-3 p-3 rounded-3 bg-warning bg-opacity-10 border border-warning">
@@ -586,7 +680,7 @@ new class extends Component
                         </div>
                     </div>
 
-                    <!-- Comments and Evaluator Info -->
+                    <!-- Comments -->
                     <div class="mt-4">
                         <label class="form-label fw-medium small">Evaluator Comments</label>
                         <textarea class="form-control small" rows="3" placeholder="Add your evaluation comments here..." wire:model="evaluator_comments" {{ $isLocked ? 'disabled' : '' }}></textarea>
@@ -710,14 +804,14 @@ new class extends Component
                                     $isCurrentUser = $evaluator->user_id == Auth::id();
                                 @endphp
                                 <tr class="{{ $isCurrentUser ? 'table-primary' : '' }}">
-                                    <td><div class="d-flex align-items-center gap-2"><div class="ev-lg-avatar bg-primary text-white">{{ substr($evaluator->evaluator->username ?? 'E', 0, 2) }}</div><div><div class="fw-medium">{{ $evaluator->evaluator->username ?? 'Unknown' }}</div><div class="text-muted small">{{ $evaluator->evaluator->email ?? '' }}</div></div></div>@if($isCurrentUser)<span class="badge bg-primary mt-1">You</span>@endif</td>
-                                    <td>{{ $evaluator->evaluator->roles->first()->name ?? 'Evaluator' }}</td>
-                                    <td class="text-center">@if($hasScored)<span class="badge bg-success">Completed</span>@elseif($score && $score->status == 'draft')<span class="badge bg-warning">In Progress</span>@else<span class="badge bg-secondary">Pending</span>@endif</td>
-                                    <td class="text-center">@if($hasScored)<span class="fw-bold text-success">{{ $score->total_score }}/100</span>@else<span class="text-muted">—</span>@endif</td>
-                                    <td class="text-center">@if($score && $score->submitted_at){{ $score->submitted_at->format('d M Y') }}@else<span class="text-muted">—</span>@endif</td>
+                                    <td><div class="d-flex align-items-center gap-2"><div class="ev-lg-avatar bg-primary text-white">{{ substr($evaluator->evaluator->username ?? 'E', 0, 2) }}</div><div><div class="fw-medium">{{ $evaluator->evaluator->username ?? 'Unknown' }}</div><div class="text-muted small">{{ $evaluator->evaluator->email ?? '' }}</div></div></div>@if($isCurrentUser)<span class="badge bg-primary mt-1">You</span>@endif</div>
+                                    <td>{{ $evaluator->evaluator->roles->first()->name ?? 'Evaluator' }}</div>
+                                    <td class="text-center">@if($hasScored)<span class="badge bg-success">Completed</span>@elseif($score && $score->status == 'draft')<span class="badge bg-warning">In Progress</span>@else<span class="badge bg-secondary">Pending</span>@endif</div>
+                                    <td class="text-center">@if($hasScored)<span class="fw-bold text-success">{{ $score->total_score }}/100</span>@else<span class="text-muted">—</span>@endif</div>
+                                    <td class="text-center">@if($score && $score->submitted_at){{ $score->submitted_at->format('d M Y') }}@else<span class="text-muted">—</span>@endif</div>
                                 </tr>
                                 @empty
-                                <tr><td colspan="5" class="text-center py-4 text-muted"><i class="bi bi-people fs-4 d-block mb-2 opacity-50"></i>No evaluators assigned to this call yet.</td></tr>
+                                <tr><td colspan="5" class="text-center py-4 text-muted"><i class="bi bi-people fs-4 d-block mb-2 opacity-50"></i>No evaluators assigned to this call yet.</div></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -728,7 +822,7 @@ new class extends Component
             <!-- Footer -->
             <div class="px-5 pb-4 pt-3 d-flex justify-content-end gap-3 border-top">
                 <button class="btn btn-light px-4" @click="open = false; $wire.closeModal()">Cancel</button>
-                @if($isAssigned && !$isLocked)
+                @if($isAssigned && $isWindowOpen && !$isLocked)
                 <button class="btn btn-primary px-4" 
                         wire:click="saveScore" 
                         wire:loading.attr="disabled"
@@ -738,6 +832,14 @@ new class extends Component
                 </button>
                 @elseif($isLocked)
                 <button class="btn btn-secondary px-4" disabled><i class="bi bi-lock me-1"></i>Score Locked</button>
+                @elseif(!$isWindowOpen && $application)
+                <button class="btn btn-secondary px-4" disabled>
+                    <i class="bi bi-calendar-x me-1"></i>
+                    @if($windowStatus == 'upcoming') Window Not Open Yet
+                    @elseif($windowStatus == 'expired') Window Closed
+                    @else No Window Set
+                    @endif
+                </button>
                 @endif
             </div>
 

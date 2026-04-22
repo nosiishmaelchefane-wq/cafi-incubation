@@ -34,6 +34,7 @@ new class extends Component
      */
     public function submitApplication()
     {
+ 
         // Check if user owns this application
         if ($this->application->user_id !== Auth::id()) {
             $this->dispatch('notify', type: 'error', message: 'You are not authorized to submit this application');
@@ -192,12 +193,14 @@ new class extends Component
 
                     <!-- Only Applicant -->
                    @can('edit Applications')
-                        <a href="#"
-                        class="btn app-btn-primary btn-sm"
-                        wire:click="openEditModal({{ $application->id }})">
-                            <i class="bi bi-pencil-fill me-1"></i>
-                            Edit Application
-                        </a>
+                        @if($application->status === 'draft')
+                            <a href="#"
+                            class="btn app-btn-primary btn-sm"
+                            wire:click="openEditModal({{ $application->id }})">
+                                <i class="bi bi-pencil-fill me-1"></i>
+                                Edit Application
+                            </a>
+                        @endif
                     @endcan
                 </div>
             </div>

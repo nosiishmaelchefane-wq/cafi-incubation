@@ -50,28 +50,57 @@ new class extends Component {
     #[Rule('required|string')]
     public string $industry_or_interest = '';
     
-    #[Rule('nullable|integer|min:0|max:100')]
+    #[Rule('required|integer|min:0|max:100')]
     public ?int $years_of_operation = null;
     
     #[Rule('nullable|string|max:1000')]
     public string $short_bio = '';
     
-    #[Rule('nullable|string|max:255')]
+    #[Rule('required|string|max:255')]
     public string $organization_name = '';
     
     // File uploads
     #[Rule('nullable|image|max:2048')]
     public $profile_image = null;
     
-    #[Rule('nullable|file|mimes:pdf,jpg,jpeg,png|max:5120')]
+    #[Rule('required|file|mimes:pdf,jpg,jpeg,png|max:5120')]
     public $tax_clearance = null;
     
-    #[Rule('nullable|file|mimes:pdf,jpg,jpeg,png|max:5120')]
+    #[Rule('required|file|mimes:pdf,jpg,jpeg,png|max:5120')]
     public $traders_license = null;
     
     // Step management
     public int $currentStep = 1;
     public int $totalSteps = 4;
+    
+    // Custom error messages
+    protected $messages = [
+        // Profile image
+        'profile_image.image' => 'The profile image must be a valid image file (JPG, PNG, GIF).',
+        'profile_image.max' => 'The profile image size must not exceed 2MB.',
+        
+        // Tax clearance
+        'tax_clearance.required' => 'The tax clearance certificate is required.',
+        'tax_clearance.file' => 'The tax clearance certificate must be a valid file.',
+        'tax_clearance.mimes' => 'The tax clearance certificate must be a PDF, JPG, or PNG file.',
+        'tax_clearance.max' => 'The tax clearance certificate size must not exceed 5MB.',
+        
+        // Trader's license
+        'traders_license.required' => 'The trader\'s license is required.',
+        'traders_license.file' => 'The trader\'s license must be a valid file.',
+        'traders_license.mimes' => 'The trader\'s license must be a PDF, JPG, or PNG file.',
+        'traders_license.max' => 'The trader\'s license size must not exceed 5MB.',
+        
+        // Email unique
+        'email.unique' => 'This email address is already registered. Please use a different email or login.',
+        
+        // Password
+        'password.min' => 'Password must be at least 10 characters.',
+        'password.confirmed' => 'Password confirmation does not match.',
+        
+        // Date of birth
+        'date_of_birth.before' => 'You must be at least 18 years old.',
+    ];
     
     // Industry options
     public array $industries = [
@@ -162,9 +191,10 @@ new class extends Component {
 
     public function register()
     {
+        // Validate all steps before final submission
         $this->validate();
         
-        // Generate username from first name and surname (allow duplicates)
+        // Generate username from first name and surname
         $username = $this->first_name . ' ' . $this->surname;
         
         try {
@@ -238,16 +268,31 @@ new class extends Component {
         // Get rules for current step
         $rules = $this->getStepValidationRules($this->currentStep);
         
+        // Validate the current step before proceeding
         if (!empty($rules)) {
-            $this->validate($rules);
+            try {
+                $this->validate($rules);
+                
+                if ($this->currentStep < $this->totalSteps) {
+                    $this->currentStep++;
+                }
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                // Validation failed, stay on current step - errors will be displayed below fields
+                $this->dispatch('notify', type: 'error', message: 'Please fix the errors before continuing.');
+                return;
+            }
+        } else {
+            if ($this->currentStep < $this->totalSteps) {
+                $this->currentStep++;
+            }
         }
-        
-        $this->currentStep++;
     }
 
     public function previousStep()
     {
-        $this->currentStep--;
+        if ($this->currentStep > 1) {
+            $this->currentStep--;
+        }
     }
 
     public function getStepValidationRules(int $step): array
@@ -270,11 +315,11 @@ new class extends Component {
                 'country' => 'required|string',
                 'area_of_operation' => 'required|string|max:255',
                 'industry_or_interest' => 'required|string',
-                'years_of_operation' => 'required|integer|min:0|max:100',
+                'years_of_operation' => 'nullable|integer|min:0|max:100',
             ],
             4 => [
                 'short_bio' => 'nullable|string|max:1000',
-                'organization_name' => 'required|string|max:255',
+                'organization_name' => 'nullable|string|max:255',
                 'tax_clearance' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
                 'traders_license' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
             ],
@@ -344,48 +389,41 @@ new class extends Component {
         </div>
     </div>
 
-    {{-- Error Message --}}
-    @if ($errors->has('registration'))
-        <div class="alert alert-error" style="background-color: #fee; color: #c00; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.8rem;">
-            {{ $errors->first('registration') }}
-        </div>
-    @endif
-
     <form wire:submit="register">
         @csrf
 
         {{-- Step 1: Account Information --}}
-        {{-- Step 1: Account Information --}}
         <div x-show="step === 1" x-cloak x-transition:enter.duration.300ms>
             <div class="field">
-                <label for="email">Email Address <span style="color: var(--green);">*</span></label>
-                <input wire:model="email" id="email" type="email" placeholder="you@example.com" autocomplete="email">
+                <label for="email">Email Address <span class="required-asterisk">*</span></label>
+                <input wire:model="email" id="email" type="email" placeholder="you@example.com" autocomplete="email" class="@error('email') error-border @enderror">
                 @error('email') <span class="error">{{ $message }}</span> @enderror
             </div>
             
             <div class="field">
-                <label for="phone">Phone Number <span style="color: var(--green);">*</span></label>
-                <input wire:model="phone" id="phone" type="tel" placeholder="+266 1234 5678" autocomplete="tel">
+                <label for="phone">Phone Number <span class="required-asterisk">*</span></label>
+                <input wire:model="phone" id="phone" type="tel" placeholder="+266 1234 5678" autocomplete="tel" class="@error('phone') error-border @enderror">
                 @error('phone') <span class="error">{{ $message }}</span> @enderror
             </div>
             
             <div class="field-row">
                 <div class="field">
-                    <label for="password">Password <span style="color: var(--green);">*</span></label>
-                    <input wire:model="password" id="password" type="password" placeholder="Min. 10 characters" autocomplete="new-password">
+                    <label for="password">Password <span class="required-asterisk">*</span></label>
+                    <input wire:model="password" id="password" type="password" placeholder="Min. 10 characters" autocomplete="new-password" class="@error('password') error-border @enderror">
                     @error('password') <span class="error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div class="field">
-                    <label for="password_confirmation">Confirm Password <span style="color: var(--green);">*</span></label>
-                    <input wire:model="password_confirmation" id="password_confirmation" type="password" placeholder="Repeat password" autocomplete="new-password">
+                    <label for="password_confirmation">Confirm Password <span class="required-asterisk">*</span></label>
+                    <input wire:model="password_confirmation" id="password_confirmation" type="password" placeholder="Repeat password" autocomplete="new-password" class="@error('password_confirmation') error-border @enderror">
+                    @error('password_confirmation') <span class="error">{{ $message }}</span> @enderror
                 </div>
             </div>
             
             <div class="field-aux" style="margin-bottom: 0;">
                 <label class="check-wrap">
-                    <input wire:model="terms" type="checkbox">
-                    I agree to the <a href="#" style="color: var(--navy); text-decoration: underline; text-underline-offset: 2px;">Terms & Privacy</a>
+                    <input wire:model="terms" type="checkbox" class="@error('terms') error-border @enderror">
+                    I agree to the <a href="#" style="color: var(--navy); text-decoration: underline; text-underline-offset: 2px;">Terms & Privacy</a> <span class="required-asterisk">*</span>
                 </label>
                 @error('terms') <span class="error" style="display: block; margin-top: 0.5rem;">{{ $message }}</span> @enderror
             </div>
@@ -395,22 +433,22 @@ new class extends Component {
         <div x-show="step === 2" x-cloak x-transition:enter.duration.300ms>
             <div class="field-row">
                 <div class="field">
-                    <label for="first_name">First Name <span style="color: var(--green);">*</span></label>
-                    <input wire:model="first_name" id="first_name" type="text" placeholder="John">
+                    <label for="first_name">First Name <span class="required-asterisk">*</span></label>
+                    <input wire:model="first_name" id="first_name" type="text" placeholder="John" class="@error('first_name') error-border @enderror">
                     @error('first_name') <span class="error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div class="field">
-                    <label for="surname">Surname <span style="color: var(--green);">*</span></label>
-                    <input wire:model="surname" id="surname" type="text" placeholder="Doe">
+                    <label for="surname">Surname <span class="required-asterisk">*</span></label>
+                    <input wire:model="surname" id="surname" type="text" placeholder="Doe" class="@error('surname') error-border @enderror">
                     @error('surname') <span class="error">{{ $message }}</span> @enderror
                 </div>
             </div>
             
             <div class="field-row">
                 <div class="field">
-                    <label for="gender">Gender <span style="color: var(--green);">*</span></label>
-                    <select wire:model="gender" id="gender">
+                    <label for="gender">Gender <span class="required-asterisk">*</span></label>
+                    <select wire:model="gender" id="gender" class="@error('gender') error-border @enderror">
                         <option value="">Select Gender</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>
@@ -420,21 +458,28 @@ new class extends Component {
                 </div>
                 
                 <div class="field">
-                    <label for="date_of_birth">Date of Birth <span style="color: var(--green);">*</span></label>
-                    <input wire:model="date_of_birth" id="date_of_birth" type="date" max="{{ now()->subYears(18)->format('Y-m-d') }}">
+                    <label for="date_of_birth">Date of Birth <span class="required-asterisk">*</span></label>
+                    <input wire:model="date_of_birth" id="date_of_birth" type="date" max="{{ now()->subYears(18)->format('Y-m-d') }}" class="@error('date_of_birth') error-border @enderror">
                     @error('date_of_birth') <span class="error">{{ $message }}</span> @enderror
                 </div>
             </div>
             
             <div class="field">
                 <label for="profile_image">Profile Image</label>
-                <input wire:model="profile_image" id="profile_image" type="file" accept="image/*" style="padding: 0.5rem 0;">
-                <small style="color: var(--smoke); font-size: 0.65rem;">Max size: 2MB. Accepted: JPG, PNG, GIF</small>
-                @error('profile_image') <span class="error">{{ $message }}</span> @enderror
+                <input wire:model="profile_image" id="profile_image" type="file" accept="image/jpeg,image/png,image/gif,image/jpg" style="padding: 0.5rem 0;" class="@error('profile_image') error-border @enderror">
+                <small style="color: var(--smoke); font-size: 0.65rem;">
+                    Max size: <strong>2MB</strong>. Accepted formats: JPG, PNG, GIF
+                </small>
+                @error('profile_image') 
+                    <span class="error">{{ $message }}</span> 
+                @enderror
                 
-                @if ($profile_image)
+                @if ($profile_image && !$errors->has('profile_image'))
                     <div class="preview" style="margin-top: 0.5rem;">
                         <img src="{{ $profile_image->temporaryUrl() }}" style="max-width: 80px; border-radius: 8px; border: 1px solid var(--border);">
+                        <div style="font-size: 0.7rem; color: var(--green); margin-top: 0.25rem;">
+                            ✓ {{ $profile_image->getClientOriginalName() }} ({{ round($profile_image->getSize() / 1024) }} KB)
+                        </div>
                     </div>
                 @endif
             </div>
@@ -444,8 +489,8 @@ new class extends Component {
         <div x-show="step === 3" x-cloak x-transition:enter.duration.300ms>
             <div class="field-row">
                 <div class="field">
-                    <label for="country">Country <span style="color: var(--green);">*</span></label>
-                    <select wire:model="country" id="country">
+                    <label for="country">Country <span class="required-asterisk">*</span></label>
+                    <select wire:model="country" id="country" class="@error('country') error-border @enderror">
                         @foreach($this->countries as $countryOption)
                             <option value="{{ $countryOption }}">{{ $countryOption }}</option>
                         @endforeach
@@ -454,15 +499,15 @@ new class extends Component {
                 </div>
                 
                 <div class="field">
-                    <label for="area_of_operation">Area of Operation <span style="color: var(--green);">*</span></label>
-                    <input wire:model="area_of_operation" id="area_of_operation" type="text" placeholder="City/District/Region">
+                    <label for="area_of_operation">Area of Operation <span class="required-asterisk">*</span></label>
+                    <input wire:model="area_of_operation" id="area_of_operation" type="text" placeholder="City/District/Region" class="@error('area_of_operation') error-border @enderror">
                     @error('area_of_operation') <span class="error">{{ $message }}</span> @enderror
                 </div>
             </div>
             
             <div class="field">
-                <label for="industry_or_interest">Industry or Area of Interest <span style="color: var(--green);">*</span></label>
-                <select wire:model="industry_or_interest" id="industry_or_interest">
+                <label for="industry_or_interest">Industry or Area of Interest <span class="required-asterisk">*</span></label>
+                <select wire:model="industry_or_interest" id="industry_or_interest" class="@error('industry_or_interest') error-border @enderror">
                     <option value="">Select Industry</option>
                     @foreach($this->industries as $industry)
                         <option value="{{ $industry }}">{{ $industry }}</option>
@@ -473,7 +518,7 @@ new class extends Component {
             
             <div class="field">
                 <label for="years_of_operation">Years of Operation</label>
-                <input wire:model="years_of_operation" id="years_of_operation" type="number" min="0" max="100" step="1" placeholder="e.g., 5">
+                <input wire:model="years_of_operation" id="years_of_operation" type="number" min="0" max="100" step="1" placeholder="e.g., 5" class="@error('years_of_operation') error-border @enderror">
                 @error('years_of_operation') <span class="error">{{ $message }}</span> @enderror
             </div>
         </div>
@@ -482,43 +527,53 @@ new class extends Component {
         <div x-show="step === 4" x-cloak x-transition:enter.duration.300ms>
             <div class="field">
                 <label for="organization_name">Organization/Company Name</label>
-                <input wire:model="organization_name" id="organization_name" type="text" placeholder="Your Business Name">
+                <input wire:model="organization_name" id="organization_name" type="text" placeholder="Your Business Name" class="@error('organization_name') error-border @enderror">
                 @error('organization_name') <span class="error">{{ $message }}</span> @enderror
             </div>
             
             <div class="field">
                 <label for="short_bio">Short Profile or Bio</label>
-                <textarea wire:model="short_bio" id="short_bio" rows="3" placeholder="Tell us about yourself and your business..."></textarea>
-                <small style="color: var(--smoke); font-size: 0.65rem;">Max 1000 characters. Current: {{ strlen($short_bio) }}</small>
+                <textarea wire:model="short_bio" id="short_bio" rows="3" placeholder="Tell us about yourself and your business..." class="@error('short_bio') error-border @enderror"></textarea>
+                <small style="color: var(--smoke); font-size: 0.65rem;">
+                    Max 1000 characters. Current: <span style="color: var(--green); font-weight: 600;">{{ strlen($short_bio) }}</span>
+                </small>
                 @error('short_bio') <span class="error">{{ $message }}</span> @enderror
             </div>
             
-            {{-- Document uploads - always visible --}}
+            {{-- Document uploads --}}
             <div class="documents-section" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
                 <h4 style="font-family: var(--display); font-size: 0.9rem; margin-bottom: 1rem; color: var(--navy);">Required Documents</h4>
                 
                 <div class="field">
-                    <label for="tax_clearance">Tax Clearance Certificate</label>
-                    <input wire:model="tax_clearance" id="tax_clearance" type="file" accept=".pdf,.jpg,.jpeg,.png" style="padding: 0.5rem 0;">
-                    <small style="color: var(--smoke); font-size: 0.65rem;">Accepted: PDF, JPG, PNG (Max 5MB)</small>
-                    @error('tax_clearance') <span class="error">{{ $message }}</span> @enderror
+                    <label for="tax_clearance">Tax Clearance Certificate <span class="required-asterisk">*</span></label>
+                    <input wire:model="tax_clearance" id="tax_clearance" type="file" accept=".pdf,.jpg,.jpeg,.png" style="padding: 0.5rem 0;" class="@error('tax_clearance') error-border @enderror">
+                    <small style="color: var(--smoke); font-size: 0.65rem;">
+                        Max size: <strong>5MB</strong>. Accepted formats: PDF, JPG, PNG
+                    </small>
+                    @error('tax_clearance') 
+                        <span class="error">{{ $message }}</span> 
+                    @enderror
                     
-                    @if ($tax_clearance)
+                    @if ($tax_clearance && !$errors->has('tax_clearance'))
                         <div class="file-name" style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--green);">
-                            📎 {{ $tax_clearance->getClientOriginalName() }}
+                            ✓ {{ $tax_clearance->getClientOriginalName() }} ({{ round($tax_clearance->getSize() / 1024) }} KB)
                         </div>
                     @endif
                 </div>
                 
                 <div class="field">
-                    <label for="traders_license">Trader's License</label>
-                    <input wire:model="traders_license" id="traders_license" type="file" accept=".pdf,.jpg,.jpeg,.png" style="padding: 0.5rem 0;">
-                    <small style="color: var(--smoke); font-size: 0.65rem;">Accepted: PDF, JPG, PNG (Max 5MB)</small>
-                    @error('traders_license') <span class="error">{{ $message }}</span> @enderror
+                    <label for="traders_license">Trader's License <span class="required-asterisk">*</span></label>
+                    <input wire:model="traders_license" id="traders_license" type="file" accept=".pdf,.jpg,.jpeg,.png" style="padding: 0.5rem 0;" class="@error('traders_license') error-border @enderror">
+                    <small style="color: var(--smoke); font-size: 0.65rem;">
+                        Max size: <strong>5MB</strong>. Accepted formats: PDF, JPG, PNG
+                    </small>
+                    @error('traders_license') 
+                        <span class="error">{{ $message }}</span> 
+                    @enderror
                     
-                    @if ($traders_license)
+                    @if ($traders_license && !$errors->has('traders_license'))
                         <div class="file-name" style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--green);">
-                            📎 {{ $traders_license->getClientOriginalName() }}
+                            ✓ {{ $traders_license->getClientOriginalName() }} ({{ round($traders_license->getSize() / 1024) }} KB)
                         </div>
                     @endif
                 </div>
@@ -560,17 +615,68 @@ new class extends Component {
 <style>
     [x-cloak] { display: none !important; }
     
- 
-    /* Select field styling */
-    select {
-        display: block; width: 100%;
-        padding: .7rem 1rem;
+    /* Required asterisk styling */
+    .required-asterisk {
+        color: #dc2626;
+        font-size: 1rem;
+        font-weight: bold;
+        margin-left: 2px;
+    }
+    
+    /* Error border styling */
+    .error-border {
+        border-color: #dc2626 !important;
+        background-color: #fef2f2 !important;
+    }
+    
+    /* Field row styling */
+    .field-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 0;
+    }
+    
+    /* Field styling */
+    .field {
+        margin-bottom: 1rem;
+    }
+    
+    .field label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--smoke);
+        margin-bottom: 0.5rem;
+    }
+    
+    .field input:not([type="checkbox"]):not([type="file"]),
+    .field select,
+    .field textarea {
+        width: 100%;
+        padding: 0.7rem 1rem;
         background: var(--white);
         border: 1.5px solid var(--border);
         border-radius: 12px;
-        font-family: var(--body); font-size: .88rem; font-weight: 400;
-        color: var(--charcoal); outline: none;
-        transition: border-color .2s, box-shadow .2s;
+        font-family: var(--body);
+        font-size: 0.88rem;
+        font-weight: 400;
+        color: var(--charcoal);
+        outline: none;
+        transition: all 0.2s;
+    }
+    
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+        border-color: var(--green);
+        box-shadow: 0 0 0 3px rgba(5,146,59,0.1);
+    }
+    
+    /* Select field styling */
+    select {
         cursor: pointer;
         appearance: none;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
@@ -579,28 +685,18 @@ new class extends Component {
         background-size: 16px;
     }
     
-    select:focus {
-        border-color: var(--green);
-        box-shadow: 0 0 0 3px rgba(5,146,59,.1);
+    /* Checkbox styling */
+    .check-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
     }
     
-    /* Textarea styling */
-    textarea {
-        display: block; width: 100%;
-        padding: .7rem 1rem;
-        background: var(--white);
-        border: 1.5px solid var(--border);
-        border-radius: 12px;
-        font-family: var(--body); font-size: .88rem; font-weight: 400;
-        color: var(--charcoal); outline: none;
-        transition: border-color .2s, box-shadow .2s;
-        resize: vertical;
-        min-height: 80px;
-    }
-    
-    textarea:focus {
-        border-color: var(--green);
-        box-shadow: 0 0 0 3px rgba(5,146,59,.1);
+    .check-wrap input {
+        width: auto;
+        margin: 0;
+        cursor: pointer;
     }
     
     /* Error message styling */
@@ -632,24 +728,24 @@ new class extends Component {
     /* Button variants */
     .btn-secondary {
         background: var(--green-pale);
-        border: 1.5px solid rgba(5,146,59,.2);
+        border: 1.5px solid rgba(5,146,59,0.2);
         color: var(--green);
         font-family: var(--display);
-        font-size: .83rem;
+        font-size: 0.83rem;
         font-weight: 700;
-        letter-spacing: .04em;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
-        padding: .82rem;
+        padding: 0.82rem;
         border-radius: 50px;
         cursor: pointer;
-        transition: all .22s;
+        transition: all 0.22s;
     }
     
     .btn-secondary:hover {
         background: var(--green);
         border-color: var(--green);
         color: var(--white);
-        box-shadow: 0 4px 16px rgba(5,146,59,.3);
+        box-shadow: 0 4px 16px rgba(5,146,59,0.3);
         transform: translateY(-1px);
     }
     
@@ -657,25 +753,25 @@ new class extends Component {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: .5rem;
+        gap: 0.5rem;
         background: var(--green);
         border: none;
         border-radius: 50px;
         color: var(--white);
         font-family: var(--display);
-        font-size: .83rem;
+        font-size: 0.83rem;
         font-weight: 700;
-        letter-spacing: .04em;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
-        padding: .88rem;
+        padding: 0.88rem;
         cursor: pointer;
-        box-shadow: 0 4px 16px rgba(5,146,59,.28);
-        transition: all .22s;
+        box-shadow: 0 4px 16px rgba(5,146,59,0.28);
+        transition: all 0.22s;
     }
     
     .btn-green:hover {
         background: var(--green-light);
-        box-shadow: 0 6px 20px rgba(5,146,59,.38);
+        box-shadow: 0 6px 20px rgba(5,146,59,0.38);
         transform: translateY(-1px);
     }
     
@@ -686,7 +782,7 @@ new class extends Component {
     }
     
     .btn-green svg {
-        transition: transform .2s;
+        transition: transform 0.2s;
     }
     
     .btn-green:hover svg {

@@ -724,14 +724,14 @@ new class extends Component
                     <div class="d-flex flex-column gap-3">
                         <!-- Tax Clearance Certificate -->
                         <div class="d-flex align-items-center justify-content-between p-3 rounded-3 border 
-                            {{ $taxClearanceVerified ? 'border-success bg-success bg-opacity-10' : ($taxClearancePath ? 'border-warning bg-warning bg-opacity-10' : 'border-secondary bg-light') }}">
+                            {{ $taxClearanceVerified ? 'border-success bg-success' : ($taxClearancePath ? 'border-warning bg-warning bg-opacity-10' : 'border-secondary bg-light') }}">
                             <div class="d-flex align-items-center gap-3">
-                                <i class="bi {{ $taxClearanceVerified ? 'bi-file-earmark-check-fill text-success' : 'bi-file-earmark-text' }} fs-4"></i>
+                                <i class="bi {{ $taxClearanceVerified ? 'bi-file-earmark-check-fill text-white' : 'bi-file-earmark-text' }} fs-4"></i>
                                 <div>
-                                    <div class="fw-medium small">Tax Clearance Certificate</div>
-                                    <div class="text-muted" style="font-size:0.72rem;">
+                                    <div class="fw-medium small {{ $taxClearanceVerified ? 'text-white' : '' }}">Tax Clearance Certificate</div>
+                                    <div class="{{ $taxClearanceVerified ? 'text-white text-opacity-75' : 'text-muted' }}" style="font-size:0.72rem;">
                                         @if($taxClearancePath)
-                                            <a href="{{ Storage::url($taxClearancePath) }}" target="_blank" class="text-decoration-none">
+                                            <a href="{{ Storage::url($taxClearancePath) }}" target="_blank" class="{{ $taxClearanceVerified ? 'text-white' : 'text-decoration-none' }}">
                                                 {{ basename($taxClearancePath) }}
                                             </a>
                                         @else
@@ -742,19 +742,19 @@ new class extends Component
                             </div>
                             <div class="d-flex gap-2 align-items-center">
                                 @if($taxClearancePath)
-                                    <a href="{{ Storage::url($taxClearancePath) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <a href="{{ Storage::url($taxClearancePath) }}" target="_blank" class="btn btn-sm {{ $taxClearanceVerified ? 'btn-light' : 'btn-outline-primary' }}">
                                         <i class="bi bi-eye"></i> View
                                     </a>
-                                    <a href="{{ Storage::url($taxClearancePath) }}" download class="btn btn-sm btn-outline-secondary">
+                                    <a href="{{ Storage::url($taxClearancePath) }}" download class="btn btn-sm {{ $taxClearanceVerified ? 'btn-light' : 'btn-outline-secondary' }}">
                                         <i class="bi bi-download"></i>
                                     </a>
                                     <div class="form-check form-switch ms-2">
                                         <input class="form-check-input" type="checkbox" 
-                                               id="tax_doc"
-                                               wire:change="verifyTaxClearance($event.target.checked)"
-                                               {{ $taxClearanceVerified ? 'checked' : '' }}
-                                               {{ $this->isLocked() ? 'disabled' : '' }}>
-                                        <label class="form-check-label small" for="tax_doc">
+                                            id="tax_doc"
+                                            wire:change="verifyTaxClearance($event.target.checked)"
+                                            {{ $taxClearanceVerified ? 'checked' : '' }}
+                                            {{ $this->isLocked() ? 'disabled' : '' }}>
+                                        <label class="form-check-label small {{ $taxClearanceVerified ? 'text-white' : '' }}" for="tax_doc">
                                             Verified
                                         </label>
                                     </div>
@@ -766,14 +766,14 @@ new class extends Component
 
                         <!-- Trader's License -->
                         <div class="d-flex align-items-center justify-content-between p-3 rounded-3 border 
-                            {{ $tradersLicenseVerified ? 'border-success bg-success bg-opacity-10' : ($tradersLicensePath ? 'border-warning bg-warning bg-opacity-10' : 'border-secondary bg-light') }}">
+                            {{ $tradersLicenseVerified ? 'border-success bg-success' : ($tradersLicensePath ? 'border-warning bg-warning bg-opacity-10' : 'border-secondary bg-light') }}">
                             <div class="d-flex align-items-center gap-3">
-                                <i class="bi {{ $tradersLicenseVerified ? 'bi-file-earmark-check-fill text-success' : 'bi-file-earmark-text' }} fs-4"></i>
+                                <i class="bi {{ $tradersLicenseVerified ? 'bi-file-earmark-check-fill text-white' : 'bi-file-earmark-text' }} fs-4"></i>
                                 <div>
-                                    <div class="fw-medium small">Trader's License</div>
-                                    <div class="text-muted" style="font-size:0.72rem;">
+                                    <div class="fw-medium small {{ $tradersLicenseVerified ? 'text-white' : '' }}">Trader's License</div>
+                                    <div class="{{ $tradersLicenseVerified ? 'text-white text-opacity-75' : 'text-muted' }}" style="font-size:0.72rem;">
                                         @if($tradersLicensePath)
-                                            <a href="{{ Storage::url($tradersLicensePath) }}" target="_blank" class="text-decoration-none">
+                                            <a href="{{ Storage::url($tradersLicensePath) }}" target="_blank" class="{{ $tradersLicenseVerified ? 'text-white' : 'text-decoration-none' }}">
                                                 {{ basename($tradersLicensePath) }}
                                             </a>
                                         @else
@@ -784,19 +784,19 @@ new class extends Component
                             </div>
                             <div class="d-flex gap-2 align-items-center">
                                 @if($tradersLicensePath)
-                                    <a href="{{ Storage::url($tradersLicensePath) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <a href="{{ Storage::url($tradersLicensePath) }}" target="_blank" class="btn btn-sm {{ $tradersLicenseVerified ? 'btn-light' : 'btn-outline-primary' }}">
                                         <i class="bi bi-eye"></i> View
                                     </a>
-                                    <a href="{{ Storage::url($tradersLicensePath) }}" download class="btn btn-sm btn-outline-secondary">
+                                    <a href="{{ Storage::url($tradersLicensePath) }}" download class="btn btn-sm {{ $tradersLicenseVerified ? 'btn-light' : 'btn-outline-secondary' }}">
                                         <i class="bi bi-download"></i>
                                     </a>
                                     <div class="form-check form-switch ms-2">
                                         <input class="form-check-input" type="checkbox" 
-                                               id="traders_doc"
-                                               wire:change="verifyTradersLicense($event.target.checked)"
-                                               {{ $tradersLicenseVerified ? 'checked' : '' }}
-                                               {{ $this->isLocked() ? 'disabled' : '' }}>
-                                        <label class="form-check-label small" for="traders_doc">
+                                            id="traders_doc"
+                                            wire:change="verifyTradersLicense($event.target.checked)"
+                                            {{ $tradersLicenseVerified ? 'checked' : '' }}
+                                            {{ $this->isLocked() ? 'disabled' : '' }}>
+                                        <label class="form-check-label small {{ $tradersLicenseVerified ? 'text-white' : '' }}" for="traders_doc">
                                             Verified
                                         </label>
                                     </div>
@@ -960,7 +960,7 @@ new class extends Component
                             </button>
                         @else
                             @can('create Screening & Eligibility')
-                                
+
                                 <button class="btn btn-sm btn-outline-danger px-3" 
                                         wire:click="confirmRejection"
                                         wire:confirm="⚠️ WARNING: You are about to reject this application.\n\nPlease ensure you have reviewed all documents and checklist items.\n\nOnce rejected, this decision will be final and cannot be changed.\n\nDo you want to continue?">

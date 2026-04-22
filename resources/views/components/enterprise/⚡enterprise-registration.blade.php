@@ -100,6 +100,21 @@ new class extends Component {
         
         // Date of birth
         'date_of_birth.before' => 'You must be at least 18 years old.',
+        
+        // Required fields
+        'first_name.required' => 'First name is required.',
+        'surname.required' => 'Surname is required.',
+        'gender.required' => 'Please select your gender.',
+        'date_of_birth.required' => 'Date of birth is required.',
+        'country.required' => 'Country is required.',
+        'area_of_operation.required' => 'Area of operation is required.',
+        'industry_or_interest.required' => 'Industry or area of interest is required.',
+        'years_of_operation.required' => 'Years of operation is required.',
+        'organization_name.required' => 'Organization/Company name is required.',
+        'email.required' => 'Email address is required.',
+        'phone.required' => 'Phone number is required.',
+        'password.required' => 'Password is required.',
+        'terms.accepted' => 'You must agree to the Terms & Privacy policy.',
     ];
     
     // Industry options
@@ -192,7 +207,31 @@ new class extends Component {
     public function register()
     {
         // Validate all steps before final submission
-        $this->validate();
+        try {
+            $this->validate();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Get all errors
+            $errors = $e->validator->errors()->all();
+            $firstError = $e->validator->errors()->first();
+            $failedFields = array_keys($e->validator->failed());
+            
+            // Determine which step has the error
+            $stepWithError = $this->getStepForField($failedFields[0] ?? '');
+            
+            // Navigate to the step with error
+            if ($stepWithError) {
+                $this->currentStep = $stepWithError;
+            }
+            
+            // Show popup with specific error message
+            $this->dispatch('show-validation-error', [
+                'message' => 'Please fix the following error: ' . $firstError,
+                'field' => $failedFields[0] ?? 'unknown',
+                'step' => $stepWithError
+            ]);
+            
+            return;
+        }
         
         // Generate username from first name and surname
         $username = $this->first_name . ' ' . $this->surname;
@@ -248,19 +287,43 @@ new class extends Component {
             return $this->redirect('/', navigate: true);
             
         } catch (\Illuminate\Database\QueryException $e) {
-            // Check for duplicate entry error (1062) - only for email now
+            // Log the full error for debugging
+            \Log::error('Registration database error: ' . $e->getMessage());
+            
+            // Check for duplicate entry error (1062)
             if ($e->errorInfo[1] == 1062) {
-                if (str_contains($e->getMessage(), 'users_email_unique')) {
+                $errorMessage = $e->getMessage();
+                
+                if (str_contains($errorMessage, 'users_email_unique')) {
                     $this->dispatch('notify', type: 'error', message: 'Registration failed. The email address "' . $this->email . '" is already registered. Please use a different email or login.');
+                    $this->currentStep = 1; // Navigate to step 1
+                } elseif (str_contains($errorMessage, 'users_phone_unique')) {
+                    $this->dispatch('notify', type: 'error', message: 'Registration failed. The phone number "' . $this->phone . '" is already registered. Please use a different phone number.');
+                    $this->currentStep = 1; // Navigate to step 1
                 } else {
-                    $this->dispatch('notify', type: 'error', message: 'Registration failed. Duplicate entry detected. Please check your information and try again.');
+                    $this->dispatch('notify', type: 'error', message: 'Registration failed: ' . $e->getMessage());
                 }
             } else {
-                $this->dispatch('notify', type: 'error', message: 'Registration failed. Please try again. Error: ' . $e->getMessage());
+                $this->dispatch('notify', type: 'error', message: 'Database error: ' . $e->getMessage());
             }
         } catch (\Exception $e) {
-            $this->dispatch('notify', type: 'error', message: 'Registration failed. Please try again. Error: ' . $e->getMessage());
+            $this->dispatch('notify', type: 'error', message: 'Registration failed: ' . $e->getMessage());
         }
+    }
+    
+    public function getStepForField($field)
+    {
+        $step1Fields = ['email', 'phone', 'password', 'terms'];
+        $step2Fields = ['first_name', 'surname', 'gender', 'date_of_birth', 'profile_image'];
+        $step3Fields = ['country', 'area_of_operation', 'industry_or_interest', 'years_of_operation'];
+        $step4Fields = ['short_bio', 'organization_name', 'tax_clearance', 'traders_license'];
+        
+        if (in_array($field, $step1Fields)) return 1;
+        if (in_array($field, $step2Fields)) return 2;
+        if (in_array($field, $step3Fields)) return 3;
+        if (in_array($field, $step4Fields)) return 4;
+        
+        return 1; // Default to step 1
     }
 
     public function nextStep()
@@ -277,8 +340,17 @@ new class extends Component {
                     $this->currentStep++;
                 }
             } catch (\Illuminate\Validation\ValidationException $e) {
-                // Validation failed, stay on current step - errors will be displayed below fields
-                $this->dispatch('notify', type: 'error', message: 'Please fix the errors before continuing.');
+                // Get the first error message
+                $firstError = $e->validator->errors()->first();
+                $failedFields = array_keys($e->validator->failed());
+                $fieldName = $failedFields[0] ?? 'unknown';
+                
+                // Dispatch error with field information
+                $this->dispatch('show-validation-error', [
+                    'message' => 'Please fix: ' . $firstError,
+                    'field' => $fieldName,
+                    'step' => $this->currentStep
+                ]);
                 return;
             }
         } else {
@@ -315,11 +387,11 @@ new class extends Component {
                 'country' => 'required|string',
                 'area_of_operation' => 'required|string|max:255',
                 'industry_or_interest' => 'required|string',
-                'years_of_operation' => 'nullable|integer|min:0|max:100',
+                'years_of_operation' => 'required|integer|min:0|max:100',
             ],
             4 => [
                 'short_bio' => 'nullable|string|max:1000',
-                'organization_name' => 'nullable|string|max:255',
+                'organization_name' => 'required|string|max:255',
                 'tax_clearance' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
                 'traders_license' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
             ],
@@ -517,7 +589,7 @@ new class extends Component {
             </div>
             
             <div class="field">
-                <label for="years_of_operation">Years of Operation</label>
+                <label for="years_of_operation">Years of Operation <span class="required-asterisk">*</span></label>
                 <input wire:model="years_of_operation" id="years_of_operation" type="number" min="0" max="100" step="1" placeholder="e.g., 5" class="@error('years_of_operation') error-border @enderror">
                 @error('years_of_operation') <span class="error">{{ $message }}</span> @enderror
             </div>
@@ -526,7 +598,7 @@ new class extends Component {
         {{-- Step 4: Additional Details --}}
         <div x-show="step === 4" x-cloak x-transition:enter.duration.300ms>
             <div class="field">
-                <label for="organization_name">Organization/Company Name</label>
+                <label for="organization_name">Organization/Company Name <span class="required-asterisk">*</span></label>
                 <input wire:model="organization_name" id="organization_name" type="text" placeholder="Your Business Name" class="@error('organization_name') error-border @enderror">
                 @error('organization_name') <span class="error">{{ $message }}</span> @enderror
             </div>
@@ -611,6 +683,67 @@ new class extends Component {
     </div>
     <livewire:notify />
 </div>
+
+<script>
+    document.addEventListener('livewire:initialized', () => {
+        // Listen for validation error with field information
+        Livewire.on('show-validation-error', (data) => {
+            const payload = data[0] || data;
+            
+            // Create a friendly field name
+            const fieldNames = {
+                'email': 'Email Address',
+                'phone': 'Phone Number',
+                'password': 'Password',
+                'terms': 'Terms & Conditions',
+                'first_name': 'First Name',
+                'surname': 'Surname',
+                'gender': 'Gender',
+                'date_of_birth': 'Date of Birth',
+                'profile_image': 'Profile Image',
+                'country': 'Country',
+                'area_of_operation': 'Area of Operation',
+                'industry_or_interest': 'Industry',
+                'years_of_operation': 'Years of Operation',
+                'organization_name': 'Organization Name',
+                'short_bio': 'Short Bio',
+                'tax_clearance': 'Tax Clearance Certificate',
+                'traders_license': 'Trader\'s License'
+            };
+            
+            const friendlyFieldName = fieldNames[payload.field] || payload.field;
+            const stepNumber = payload.step;
+            
+            // Show SweetAlert with specific error
+            Swal.fire({
+                title: 'Validation Error',
+                html: `
+                    <div style="text-align: left;">
+                        <p><strong>Error in Section ${stepNumber}:</strong> ${friendlyFieldName}</p>
+                        <p class="text-danger">${payload.message}</p>
+                        <hr>
+                        <p class="text-muted small">You have been redirected to the section with the error. Please fix the issue and try again.</p>
+                    </div>
+                `,
+                icon: 'error',
+                confirmButtonText: 'OK, Go to Error',
+                confirmButtonColor: '#dc2626',
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Scroll to the error field
+                    setTimeout(() => {
+                        const errorField = document.querySelector('.error-border');
+                        if (errorField) {
+                            errorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            errorField.focus();
+                        }
+                    }, 300);
+                }
+            });
+        });
+    });
+</script>
 
 <style>
     [x-cloak] { display: none !important; }

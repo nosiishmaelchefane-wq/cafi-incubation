@@ -834,7 +834,7 @@ new class extends Component
                         <div class="d-flex flex-column gap-2">
                             @foreach($eligibilityChecklist as $index => $criterion)
                             <div class="d-flex align-items-start gap-3 p-3 rounded-3 border 
-                                {{ $criterion['passed'] === true ? 'bg-success bg-opacity-10 border-success' : ($criterion['passed'] === false ? 'bg-danger bg-opacity-10 border-danger' : 'bg-light') }}">
+                                {{ $criterion['passed'] === true ? 'border-success bg-success' : ($criterion['passed'] === false ? 'bg-danger bg-opacity-10 border-danger' : 'bg-light') }}">
                                 <div class="pt-1">
                                     <input class="form-check-input" type="checkbox" 
                                         {{ $criterion['passed'] === true ? 'checked' : '' }}
@@ -842,11 +842,11 @@ new class extends Component
                                         {{ $this->isLocked() ? 'disabled' : '' }}>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <label class="form-check-label small fw-medium">{{ $criterion['label'] }}</label>
-                                    <div class="text-muted" style="font-size:0.72rem;">{{ $criterion['hint'] }}</div>
+                                    <label class="form-check-label small fw-medium {{ $criterion['passed'] === true ? 'text-white' : '' }}">{{ $criterion['label'] }}</label>
+                                    <div class="{{ $criterion['passed'] === true ? 'text-white text-opacity-75' : 'text-muted' }}" style="font-size:0.72rem;">{{ $criterion['hint'] }}</div>
                                 </div>
                                 <i class="bi fs-5 flex-shrink-0 
-                                    {{ $criterion['passed'] === true ? 'bi-check-circle-fill text-success' : ($criterion['passed'] === false ? 'bi-x-circle-fill text-danger' : 'bi-circle text-muted') }}">
+                                    {{ $criterion['passed'] === true ? 'bi-check-circle-fill text-white' : ($criterion['passed'] === false ? 'bi-x-circle-fill text-danger' : 'bi-circle text-muted') }}">
                                 </i>
                             </div>
                             @endforeach
@@ -854,7 +854,7 @@ new class extends Component
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label fw-medium small">Screening Notes</label>
+                        <label class="form-label fw-medium small {{ $this->checklist_stats['allPassed'] ? 'text-white' : '' }}">Screening Notes</label>
                         <textarea class="form-control small" rows="3" placeholder="Add notes about this application's eligibility…" wire:model="screeningNotes" {{ $this->isLocked() ? 'disabled' : '' }}></textarea>
                     </div>
                     

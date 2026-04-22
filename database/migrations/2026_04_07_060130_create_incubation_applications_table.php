@@ -49,7 +49,7 @@ return new class extends Migration
             $table->text('industry_other_elaboration')->nullable();
             $table->foreignId('call_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('status')->default('pending');
+            $table->string('status')->default('draft');
             $table->timestamp('submitted_at')->nullable();
             $table->timestamps();
             $table->softDeletes();

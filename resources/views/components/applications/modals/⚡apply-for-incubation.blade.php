@@ -133,7 +133,7 @@ new class extends Component
         'willing_to_commit.required' => 'Please indicate if you are willing to commit to the program',
     ];
     
-     #[On('edit-application')]
+    #[On('edit-application')]
     public function editApplication($applicationId)
     {
         $this->application_id = $applicationId;
@@ -198,9 +198,6 @@ new class extends Component
     public function submitApplication()
     {
         $this->validate();
-       
-        
-        
         
         if ($this->isEditMode) {
             // Update existing application
@@ -285,7 +282,7 @@ new class extends Component
             if ($this->applicant_twitter) $applicantSocialMedia['twitter'] = $this->applicant_twitter;
             if ($this->applicant_linkedin) $applicantSocialMedia['linkedin'] = $this->applicant_linkedin;
             
-            // Create application
+            // Create application with draft status
             $application = IncubationApplication::create([
                 'application_number' => $this->generateApplicationNumber(),
                 'applied_date' => now(),
@@ -326,14 +323,23 @@ new class extends Component
                 'industry_other_elaboration' => $this->industry_other_elaboration,
                 'call_id' => $this->id,
                 'user_id' => Auth::id(),
-                'status' => 'Draft',
-                'submitted_at' => now(),
+                'status' => 'draft',
+                'submitted_at' => null,
             ]);
 
+            // Store the call ID and application number before resetting
+            $callId = $application->id;
+            $applicationNumber = $application->application_number;
+            
             $this->resetForm();
             $this->dispatch('close-application-modal');
             $this->dispatch('application-updated');
-            $this->dispatch('notify', type: 'success', message: 'Application created successfully! Application Number: ' . $application->application_number . '. Please review your application and click "Submit" when ready.');
+            
+            // Show popup notification with the correct call ID and redirect
+            $this->dispatch('show-draft-saved-popup', [
+                'applicationNumber' => $applicationNumber,
+                'callId' => $callId
+            ]);
         }
     }
     
@@ -441,410 +447,413 @@ new class extends Component
                     <button type="button" class="btn-close" wire:click="closeApplicationModal" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 
-                <div class="modal-body">
-                    <form wire:submit.prevent="submitApplication">
-                        <!-- Company Information Section -->
-                        <div class="mb-4">
-                            <h6 class="fw-bold mb-3 bg-light p-2 rounded">Company Information</h6>
-                            <div class="row g-3">
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-medium small">Company Name <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control @error('company_name') is-invalid @enderror" wire:model="company_name">
-                                    @error('company_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-medium small">Registered Company Name</label>
-                                    <input type="text" class="form-control @error('registered_company_name') is-invalid @enderror" wire:model="registered_company_name">
-                                    @error('registered_company_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label fw-medium small">Business Description <span class="text-danger">*</span></label>
-                                    <textarea class="form-control @error('business_description') is-invalid @enderror" rows="3" wire:model="business_description" placeholder="Describe your business, products, and services..."></textarea>
-                                    @error('business_description') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-medium small">Business Model</label>
-                                    <select class="form-select @error('business_model') is-invalid @enderror" wire:model="business_model">
-                                        <option value="">Select business model</option>
-                                        <option>B2B</option>
-                                        <option>B2C</option>
-                                        <option>B2B2C</option>
-                                        <option>Marketplace</option>
-                                        <option>Subscription</option>
-                                        <option>Freemium</option>
-                                        <option>E-commerce</option>
-                                    </select>
-                                    @error('business_model') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-medium small">Offering</label>
-                                    <select class="form-select @error('offering') is-invalid @enderror" wire:model="offering">
-                                        <option value="">Select offering type</option>
-                                        <option>Product</option>
-                                        <option>Service</option>
-                                        <option>Both Product & Service</option>
-                                        <option>Platform</option>
-                                        <option>Solution</option>
-                                    </select>
-                                    @error('offering') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-medium small">Revenue Model</label>
-                                    <select class="form-select @error('revenue_model') is-invalid @enderror" wire:model="revenue_model">
-                                        <option value="">Select revenue model</option>
-                                        <option>Direct Sales</option>
-                                        <option>Subscription</option>
-                                        <option>Freemium</option>
-                                        <option>Commission</option>
-                                        <option>Advertising</option>
-                                        <option>Licensing</option>
-                                    </select>
-                                    @error('revenue_model') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-medium small">Website</label>
-                                    <input type="url" class="form-control @error('website') is-invalid @enderror" wire:model="website" placeholder="https://yourcompany.com">
-                                    @error('website') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
+              <div class="modal-body">
+                <form wire:submit.prevent="submitApplication">
+                    <!-- Company Information Section -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3 bg-light p-2 rounded">Company Information</h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-medium small">Company Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control @error('company_name') is-invalid @enderror" wire:model="company_name">
+                                @error('company_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-medium small">Registered Company Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control @error('registered_company_name') is-invalid @enderror" wire:model="registered_company_name">
+                                @error('registered_company_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium small">Business Description <span class="text-danger">*</span></label>
+                                <textarea class="form-control @error('business_description') is-invalid @enderror" rows="3" wire:model="business_description" placeholder="Describe your business, products, and services..."></textarea>
+                                @error('business_description') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-medium small">Business Model <span class="text-danger">*</span></label>
+                                <select class="form-select @error('business_model') is-invalid @enderror" wire:model="business_model">
+                                    <option value="">Select business model</option>
+                                    <option>B2B</option>
+                                    <option>B2C</option>
+                                    <option>B2B2C</option>
+                                    <option>Marketplace</option>
+                                    <option>Subscription</option>
+                                    <option>Freemium</option>
+                                    <option>E-commerce</option>
+                                </select>
+                                @error('business_model') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-medium small">Offering <span class="text-danger">*</span></label>
+                                <select class="form-select @error('offering') is-invalid @enderror" wire:model="offering">
+                                    <option value="">Select offering type</option>
+                                    <option>Product</option>
+                                    <option>Service</option>
+                                    <option>Both Product & Service</option>
+                                    <option>Platform</option>
+                                    <option>Solution</option>
+                                </select>
+                                @error('offering') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-medium small">Revenue Model <span class="text-danger">*</span></label>
+                                <select class="form-select @error('revenue_model') is-invalid @enderror" wire:model="revenue_model">
+                                    <option value="">Select revenue model</option>
+                                    <option>Direct Sales</option>
+                                    <option>Subscription</option>
+                                    <option>Freemium</option>
+                                    <option>Commission</option>
+                                    <option>Advertising</option>
+                                    <option>Licensing</option>
+                                </select>
+                                @error('revenue_model') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-medium small">Website</label>
+                                <input type="url" class="form-control @error('website') is-invalid @enderror" wire:model="website" placeholder="https://yourcompany.com">
+                                @error('website') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Company Classification -->
-                        <div class="mb-4">
-                            <h6 class="fw-bold mb-3 bg-light p-2 rounded">Company Classification</h6>
-                            <div class="row g-3">
-                                <div class="col-12 col-md-4">
-                                    <label class="form-label fw-medium small">Company Type</label>
-                                    <select class="form-select @error('company_type') is-invalid @enderror" wire:model="company_type">
-                                        <option value="">Select type</option>
-                                        <option>Sole Proprietorship</option>
-                                        <option>Partnership</option>
-                                        <option>Private Limited Company</option>
-                                        <option>Public Limited Company</option>
-                                        <option>Non-Profit Organization</option>
-                                        <option>Cooperative</option>
-                                    </select>
-                                    @error('company_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <label class="form-label fw-medium small">Industry</label>
-                                    <select class="form-select @error('industry') is-invalid @enderror" wire:model="industry">
-                                        <option value="">Select industry</option>
-                                        <option>Agriculture</option>
-                                        <option>Technology</option>
-                                        <option>Manufacturing</option>
-                                        <option>Retail & Trade</option>
-                                        <option>Textile & Garments</option>
-                                        <option>Food & Beverage</option>
-                                        <option>Health & Wellness</option>
-                                        <option>Education</option>
-                                        <option>Finance & Fintech</option>
-                                        <option>Construction</option>
-                                        <option>Tourism & Hospitality</option>
-                                        <option>Transport & Logistics</option>
-                                        <option>Other</option>
-                                    </select>
-                                    @error('industry') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <label class="form-label fw-medium small">Sector</label>
-                                    <select class="form-select @error('sector') is-invalid @enderror" wire:model="sector">
-                                        <option value="">Select sector</option>
-                                        <option>Primary</option>
-                                        <option>Secondary</option>
-                                        <option>Tertiary</option>
-                                        <option>Quaternary</option>
-                                    </select>
-                                    @error('sector') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <label class="form-label fw-medium small">Country</label>
-                                    <select class="form-select @error('country') is-invalid @enderror" wire:model="country">
-                                        <option value="Lesotho">Lesotho</option>
-                                        <option>South Africa</option>
-                                        <option>Botswana</option>
-                                        <option>Eswatini</option>
-                                        <option>Namibia</option>
-                                        <option>Zimbabwe</option>
-                                        <option>Other</option>
-                                    </select>
-                                    @error('country') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <label class="form-label fw-medium small">District</label>
-                                    <select class="form-select @error('district') is-invalid @enderror" wire:model="district">
-                                        <option value="">Select district</option>
-                                        <option>Maseru</option>
-                                        <option>Leribe</option>
-                                        <option>Berea</option>
-                                        <option>Mafeteng</option>
-                                        <option>Mohale's Hoek</option>
-                                        <option>Quthing</option>
-                                        <option>Qacha's Nek</option>
-                                        <option>Mokhotlong</option>
-                                        <option>Butha-Buthe</option>
-                                        <option>Thaba-Tseka</option>
-                                    </select>
-                                    @error('district') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <label class="form-label fw-medium small">Year of Establishment</label>
-                                    <select class="form-select @error('year_of_establishment') is-invalid @enderror" wire:model="year_of_establishment">
-                                        <option value="">Select year</option>
-                                        @for($year = date('Y'); $year >= 1980; $year--)
-                                            <option value="{{ $year }}">{{ $year }}</option>
-                                        @endfor
-                                    </select>
-                                    @error('year_of_establishment') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-medium small">Company Stage</label>
-                                    <select class="form-select @error('company_stage') is-invalid @enderror" wire:model="company_stage">
-                                        <option value="">Select stage</option>
-                                        <option>Idea Stage</option>
-                                        <option>Startup</option>
-                                        <option>Growth</option>
-                                        <option>Expansion</option>
-                                        <option>Mature</option>
-                                    </select>
-                                    @error('company_stage') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-medium small">Company Size</label>
-                                    <select class="form-select @error('company_size') is-invalid @enderror" wire:model="company_size">
-                                        <option value="">Select size</option>
-                                        <option>1-10 employees</option>
-                                        <option>11-50 employees</option>
-                                        <option>51-200 employees</option>
-                                        <option>201-500 employees</option>
-                                        <option>500+ employees</option>
-                                    </select>
-                                    @error('company_size') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
+                    <!-- Company Classification -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3 bg-light p-2 rounded">Company Classification</h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-medium small">Company Type <span class="text-danger">*</span></label>
+                                <select class="form-select @error('company_type') is-invalid @enderror" wire:model="company_type">
+                                    <option value="">Select type</option>
+                                    <option>Sole Proprietorship</option>
+                                    <option>Partnership</option>
+                                    <option>Private Limited Company</option>
+                                    <option>Public Limited Company</option>
+                                    <option>Non-Profit Organization</option>
+                                    <option>Cooperative</option>
+                                </select>
+                                @error('company_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-medium small">Industry <span class="text-danger">*</span></label>
+                                <select class="form-select @error('industry') is-invalid @enderror" wire:model="industry">
+                                    <option value="">Select industry</option>
+                                    <option>Agriculture</option>
+                                    <option>Technology</option>
+                                    <option>Manufacturing</option>
+                                    <option>Retail & Trade</option>
+                                    <option>Textile & Garments</option>
+                                    <option>Food & Beverage</option>
+                                    <option>Health & Wellness</option>
+                                    <option>Education</option>
+                                    <option>Finance & Fintech</option>
+                                    <option>Construction</option>
+                                    <option>Tourism & Hospitality</option>
+                                    <option>Transport & Logistics</option>
+                                    <option>Other</option>
+                                </select>
+                                @error('industry') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-medium small">Sector <span class="text-danger">*</span></label>
+                                <select class="form-select @error('sector') is-invalid @enderror" wire:model="sector">
+                                    <option value="">Select sector</option>
+                                    <option>Primary</option>
+                                    <option>Secondary</option>
+                                    <option>Tertiary</option>
+                                    <option>Quaternary</option>
+                                </select>
+                                @error('sector') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-medium small">Country <span class="text-danger">*</span></label>
+                                <select class="form-select @error('country') is-invalid @enderror" wire:model="country">
+                                    <option value="Lesotho">Lesotho</option>
+                                    <option>South Africa</option>
+                                    <option>Botswana</option>
+                                    <option>Eswatini</option>
+                                    <option>Namibia</option>
+                                    <option>Zimbabwe</option>
+                                    <option>Other</option>
+                                </select>
+                                @error('country') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-medium small">District <span class="text-danger">*</span></label>
+                                <select class="form-select @error('district') is-invalid @enderror" wire:model="district">
+                                    <option value="">Select district</option>
+                                    <option>Maseru</option>
+                                    <option>Leribe</option>
+                                    <option>Berea</option>
+                                    <option>Mafeteng</option>
+                                    <option>Mohale's Hoek</option>
+                                    <option>Quthing</option>
+                                    <option>Qacha's Nek</option>
+                                    <option>Mokhotlong</option>
+                                    <option>Butha-Buthe</option>
+                                    <option>Thaba-Tseka</option>
+                                </select>
+                                @error('district') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-medium small">Year of Establishment <span class="text-danger">*</span></label>
+                                <select class="form-select @error('year_of_establishment') is-invalid @enderror" wire:model="year_of_establishment">
+                                    <option value="">Select year</option>
+                                    @for($year = date('Y'); $year >= 1980; $year--)
+                                        <option value="{{ $year }}">{{ $year }}</option>
+                                    @endfor
+                                </select>
+                                @error('year_of_establishment') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-medium small">Company Stage <span class="text-danger">*</span></label>
+                                <select class="form-select @error('company_stage') is-invalid @enderror" wire:model="company_stage">
+                                    <option value="">Select stage</option>
+                                    <option>Idea Stage</option>
+                                    <option>Startup</option>
+                                    <option>Growth</option>
+                                    <option>Expansion</option>
+                                    <option>Mature</option>
+                                </select>
+                                @error('company_stage') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-medium small">Company Size <span class="text-danger">*</span></label>
+                                <select class="form-select @error('company_size') is-invalid @enderror" wire:model="company_size">
+                                    <option value="">Select size</option>
+                                    <option>1-10 employees</option>
+                                    <option>11-50 employees</option>
+                                    <option>51-200 employees</option>
+                                    <option>201-500 employees</option>
+                                    <option>500+ employees</option>
+                                </select>
+                                @error('company_size') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Social Media -->
-                        <div class="mb-4">
-                            <h6 class="fw-bold mb-3 bg-light p-2 rounded">Social Media Profiles</h6>
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label class="form-label fw-medium small">Social Media</label>
-                                    <div class="border rounded p-3">
-                                        <div class="row g-2">
-                                            <div class="col-12 col-md-6">
-                                                <div class="input-group input-group-sm">
-                                                    <span class="input-group-text"><i class="bi bi-facebook"></i></span>
-                                                    <input type="text" class="form-control @error('social_media_facebook') is-invalid @enderror" wire:model="social_media_facebook" placeholder="Facebook URL">
-                                                </div>
-                                                @error('social_media_facebook') <div class="text-danger small">{{ $message }}</div> @enderror
+                    <!-- Social Media -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3 bg-light p-2 rounded">Social Media Profiles</h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-medium small">Social Media</label>
+                                <div class="border rounded p-3">
+                                    <div class="row g-2">
+                                        <div class="col-12 col-md-6">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text"><i class="bi bi-facebook"></i></span>
+                                                <input type="text" class="form-control @error('social_media_facebook') is-invalid @enderror" wire:model="social_media_facebook" placeholder="Facebook URL">
                                             </div>
-                                            <div class="col-12 col-md-6">
-                                                <div class="input-group input-group-sm">
-                                                    <span class="input-group-text"><i class="bi bi-twitter-x"></i></span>
-                                                    <input type="text" class="form-control @error('social_media_twitter') is-invalid @enderror" wire:model="social_media_twitter" placeholder="Twitter/X URL">
-                                                </div>
-                                                @error('social_media_twitter') <div class="text-danger small">{{ $message }}</div> @enderror
+                                            @error('social_media_facebook') <div class="text-danger small">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text"><i class="bi bi-twitter-x"></i></span>
+                                                <input type="text" class="form-control @error('social_media_twitter') is-invalid @enderror" wire:model="social_media_twitter" placeholder="Twitter/X URL">
                                             </div>
-                                            <div class="col-12 col-md-6">
-                                                <div class="input-group input-group-sm">
-                                                    <span class="input-group-text"><i class="bi bi-linkedin"></i></span>
-                                                    <input type="text" class="form-control @error('social_media_linkedin') is-invalid @enderror" wire:model="social_media_linkedin" placeholder="LinkedIn URL">
-                                                </div>
-                                                @error('social_media_linkedin') <div class="text-danger small">{{ $message }}</div> @enderror
+                                            @error('social_media_twitter') <div class="text-danger small">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text"><i class="bi bi-linkedin"></i></span>
+                                                <input type="text" class="form-control @error('social_media_linkedin') is-invalid @enderror" wire:model="social_media_linkedin" placeholder="LinkedIn URL">
                                             </div>
-                                            <div class="col-12 col-md-6">
-                                                <div class="input-group input-group-sm">
-                                                    <span class="input-group-text"><i class="bi bi-instagram"></i></span>
-                                                    <input type="text" class="form-control @error('social_media_instagram') is-invalid @enderror" wire:model="social_media_instagram" placeholder="Instagram URL">
-                                                </div>
-                                                @error('social_media_instagram') <div class="text-danger small">{{ $message }}</div> @enderror
+                                            @error('social_media_linkedin') <div class="text-danger small">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text"><i class="bi bi-instagram"></i></span>
+                                                <input type="text" class="form-control @error('social_media_instagram') is-invalid @enderror" wire:model="social_media_instagram" placeholder="Instagram URL">
                                             </div>
+                                            @error('social_media_instagram') <div class="text-danger small">{{ $message }}</div> @enderror
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Applicant Information -->
-                        <div class="mb-4">
-                            <h6 class="fw-bold mb-3 bg-light p-2 rounded">Applicant Information</h6>
-                            <div class="row g-3">
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-medium small">Full Name <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control @error('applicant_name') is-invalid @enderror" wire:model="applicant_name">
-                                    @error('applicant_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-medium small">Email Address <span class="text-danger">*</span></label>
-                                    <input type="email" class="form-control @error('applicant_email') is-invalid @enderror" wire:model="applicant_email">
-                                    @error('applicant_email') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <label class="form-label fw-medium small">Title/Position</label>
-                                    <input type="text" class="form-control @error('applicant_title') is-invalid @enderror" wire:model="applicant_title">
-                                    @error('applicant_title') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <label class="form-label fw-medium small">Gender</label>
-                                    <select class="form-select @error('applicant_gender') is-invalid @enderror" wire:model="applicant_gender">
-                                        <option value="">Select gender</option>
-                                        <option>Male</option>
-                                        <option>Female</option>
-                                        <option>Non-binary</option>
-                                        <option>Prefer not to say</option>
-                                    </select>
-                                    @error('applicant_gender') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <label class="form-label fw-medium small">Nationality</label>
-                                    <select class="form-select @error('applicant_nationality') is-invalid @enderror" wire:model="applicant_nationality">
-                                        <option value="Lesotho">Lesotho</option>
-                                        <option>South Africa</option>
-                                        <option>Other</option>
-                                    </select>
-                                    @error('applicant_nationality') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-medium small">Contact Number <span class="text-danger">*</span></label>
-                                    <input type="tel" class="form-control @error('applicant_contact_number') is-invalid @enderror" wire:model="applicant_contact_number" placeholder="+266 XXXX XXXX">
-                                    @error('applicant_contact_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label fw-medium small">About You</label>
-                                    <textarea class="form-control @error('applicant_about') is-invalid @enderror" rows="2" wire:model="applicant_about" placeholder="Brief background about yourself and your role in the company..."></textarea>
-                                    @error('applicant_about') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label fw-medium small">Applicant Social Media</label>
-                                    <div class="border rounded p-3">
-                                        <div class="row g-2">
-                                            <div class="col-12 col-md-6">
-                                                <div class="input-group input-group-sm">
-                                                    <span class="input-group-text"><i class="bi bi-twitter-x"></i></span>
-                                                    <input type="text" class="form-control @error('applicant_twitter') is-invalid @enderror" wire:model="applicant_twitter" placeholder="Twitter/X URL">
-                                                </div>
-                                                @error('applicant_twitter') <div class="text-danger small">{{ $message }}</div> @enderror
+                    <!-- Applicant Information -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3 bg-light p-2 rounded">Applicant Information</h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-medium small">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control @error('applicant_name') is-invalid @enderror" wire:model="applicant_name">
+                                @error('applicant_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-medium small">Email Address <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control @error('applicant_email') is-invalid @enderror" wire:model="applicant_email">
+                                @error('applicant_email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-medium small">Title/Position <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control @error('applicant_title') is-invalid @enderror" wire:model="applicant_title">
+                                @error('applicant_title') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-medium small">Gender <span class="text-danger">*</span></label>
+                                <select class="form-select @error('applicant_gender') is-invalid @enderror" wire:model="applicant_gender">
+                                    <option value="">Select gender</option>
+                                    <option>Male</option>
+                                    <option>Female</option>
+                                    <option>Non-binary</option>
+                                    <option>Prefer not to say</option>
+                                </select>
+                                @error('applicant_gender') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-medium small">Nationality <span class="text-danger">*</span></label>
+                                <select class="form-select @error('applicant_nationality') is-invalid @enderror" wire:model="applicant_nationality">
+                                    <option value="Lesotho">Lesotho</option>
+                                    <option>South Africa</option>
+                                    <option>Other</option>
+                                </select>
+                                @error('applicant_nationality') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-medium small">Contact Number <span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control @error('applicant_contact_number') is-invalid @enderror" wire:model="applicant_contact_number" placeholder="+266 XXXX XXXX">
+                                @error('applicant_contact_number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium small">About You <span class="text-danger">*</span></label>
+                                <textarea class="form-control @error('applicant_about') is-invalid @enderror" rows="2" wire:model="applicant_about" placeholder="Brief background about yourself and your role in the company..."></textarea>
+                                @error('applicant_about') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium small">Applicant Social Media</label>
+                                <div class="border rounded p-3">
+                                    <div class="row g-2">
+                                        <div class="col-12 col-md-6">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text"><i class="bi bi-twitter-x"></i></span>
+                                                <input type="text" class="form-control @error('applicant_twitter') is-invalid @enderror" wire:model="applicant_twitter" placeholder="Twitter/X URL">
                                             </div>
-                                            <div class="col-12 col-md-6">
-                                                <div class="input-group input-group-sm">
-                                                    <span class="input-group-text"><i class="bi bi-linkedin"></i></span>
-                                                    <input type="text" class="form-control @error('applicant_linkedin') is-invalid @enderror" wire:model="applicant_linkedin" placeholder="LinkedIn URL">
-                                                </div>
-                                                @error('applicant_linkedin') <div class="text-danger small">{{ $message }}</div> @enderror
+                                            @error('applicant_twitter') <div class="text-danger small">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text"><i class="bi bi-linkedin"></i></span>
+                                                <input type="text" class="form-control @error('applicant_linkedin') is-invalid @enderror" wire:model="applicant_linkedin" placeholder="LinkedIn URL">
                                             </div>
+                                            @error('applicant_linkedin') <div class="text-danger small">{{ $message }}</div> @enderror
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Financial & Support Questions -->
-                        <div class="mb-4">
-                            <h6 class="fw-bold mb-3 bg-light p-2 rounded">Financial & Support Information</h6>
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label class="form-label fw-medium small">Have you received any financial support or funding before?</label>
-                                    <select class="form-select @error('received_financial_support') is-invalid @enderror" wire:model="received_financial_support">
-                                        <option value="">Select option</option>
-                                        <option>Yes</option>
-                                        <option>No</option>
-                                    </select>
-                                    @error('received_financial_support') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label fw-medium small">Have you participated in any business competitions, incubators, or accelerators before?</label>
-                                    <select class="form-select @error('participated_competitions') is-invalid @enderror" wire:model="participated_competitions">
-                                        <option value="">Select option</option>
-                                        <option>Yes</option>
-                                        <option>No</option>
-                                    </select>
-                                    @error('participated_competitions') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label fw-medium small">Are you willing to commit the necessary time and resources to participate fully in the program? <span class="text-danger">*</span></label>
-                                    <select class="form-select @error('willing_to_commit') is-invalid @enderror" wire:model="willing_to_commit">
-                                        <option value="">Select option</option>
-                                        <option value="1">Yes</option>
-                                        <option value="0">No</option>
-                                    </select>
-                                    @error('willing_to_commit') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
+                    <!-- Financial & Support Questions -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3 bg-light p-2 rounded">Financial & Support Information</h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-medium small">Have you received any financial support or funding before? <span class="text-danger">*</span></label>
+                                <select class="form-select @error('received_financial_support') is-invalid @enderror" wire:model="received_financial_support">
+                                    <option value="">Select option</option>
+                                    <option>Yes</option>
+                                    <option>No</option>
+                                </select>
+                                @error('received_financial_support') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium small">Have you participated in any business competitions, incubators, or accelerators before? <span class="text-danger">*</span></label>
+                                <select class="form-select @error('participated_competitions') is-invalid @enderror" wire:model="participated_competitions">
+                                    <option value="">Select option</option>
+                                    <option>Yes</option>
+                                    <option>No</option>
+                                </select>
+                                @error('participated_competitions') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium small">Are you willing to commit the necessary time and resources to participate fully in the program? <span class="text-danger">*</span></label>
+                                <select class="form-select @error('willing_to_commit') is-invalid @enderror" wire:model="willing_to_commit">
+                                    <option value="">Select option</option>
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                                @error('willing_to_commit') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Numeric Information -->
-                        <div class="mb-4">
-                            <h6 class="fw-bold mb-3 bg-light p-2 rounded">Business Metrics</h6>
-                            <div class="row g-3">
-                                <div class="col-12 col-md-4">
-                                    <label class="form-label fw-medium small">Number of Shareholders</label>
-                                    <input type="number" class="form-control @error('number_of_shareholders') is-invalid @enderror" wire:model="number_of_shareholders">
-                                    @error('number_of_shareholders') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <label class="form-label fw-medium small">Number of Women Shareholders</label>
-                                    <input type="number" class="form-control @error('number_women_shareholders') is-invalid @enderror" wire:model="number_women_shareholders">
-                                    @error('number_women_shareholders') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <label class="form-label fw-medium small">Number of Youth Shareholders</label>
-                                    <input type="number" class="form-control @error('number_youth_shareholders') is-invalid @enderror" wire:model="number_youth_shareholders">
-                                    @error('number_youth_shareholders') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-medium small">How many customers/clients do you serve currently?</label>
-                                    <input type="number" class="form-control @error('number_of_customers') is-invalid @enderror" wire:model="number_of_customers">
-                                    @error('number_of_customers') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-medium small">Average monthly sales (in Maloti)</label>
-                                    <input type="number" step="0.01" class="form-control @error('average_monthly_sales') is-invalid @enderror" wire:model="average_monthly_sales">
-                                    @error('average_monthly_sales') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label fw-medium small">How many jobs do you anticipate creating within 12 months?</label>
-                                    <input type="number" class="form-control @error('jobs_to_create_12_months') is-invalid @enderror" wire:model="jobs_to_create_12_months">
-                                    @error('jobs_to_create_12_months') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
+                    <!-- Numeric Information -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3 bg-light p-2 rounded">Business Metrics</h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-medium small">Number of Shareholders <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control @error('number_of_shareholders') is-invalid @enderror" wire:model="number_of_shareholders">
+                                @error('number_of_shareholders') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-medium small">Number of Women Shareholders <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control @error('number_women_shareholders') is-invalid @enderror" wire:model="number_women_shareholders">
+                                @error('number_women_shareholders') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-medium small">Number of Youth Shareholders <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control @error('number_youth_shareholders') is-invalid @enderror" wire:model="number_youth_shareholders">
+                                @error('number_youth_shareholders') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-medium small">How many customers/clients do you serve currently? <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control @error('number_of_customers') is-invalid @enderror" wire:model="number_of_customers">
+                                @error('number_of_customers') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-medium small">Average monthly sales (in Maloti) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" class="form-control @error('average_monthly_sales') is-invalid @enderror" wire:model="average_monthly_sales">
+                                @error('average_monthly_sales') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium small">How many jobs do you anticipate creating within 12 months? <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control @error('jobs_to_create_12_months') is-invalid @enderror" wire:model="jobs_to_create_12_months">
+                                @error('jobs_to_create_12_months') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Additional Information -->
-                        <div class="mb-4">
-                            <h6 class="fw-bold mb-3 bg-light p-2 rounded">Additional Information</h6>
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label class="form-label fw-medium small">If Industry is "Other", please elaborate</label>
-                                    <textarea class="form-control @error('industry_other_elaboration') is-invalid @enderror" rows="2" wire:model="industry_other_elaboration" placeholder="Please specify your industry if you selected 'Other'..."></textarea>
-                                    @error('industry_other_elaboration') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                </div>
+                    <!-- Additional Information -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3 bg-light p-2 rounded">Additional Information</h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-medium small">If Industry is "Other", please elaborate</label>
+                                <textarea class="form-control @error('industry_other_elaboration') is-invalid @enderror" rows="2" wire:model="industry_other_elaboration" placeholder="Please specify your industry if you selected 'Other'..."></textarea>
+                                @error('industry_other_elaboration') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
+            </div>
 
                 <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" wire:click="closeApplicationModal" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-primary" wire:click="submitApplication" wire:loading.attr="disabled">
-                            <span wire:loading.remove>
-                                @if($isEditMode)
-                                    Update Application
-                                @else
-                                    Submit Application
-                                @endif
-                            </span>
-                            <span wire:loading>
-                                <span class="spinner-border spinner-border-sm me-1"></span> 
-                                @if($isEditMode) Updating... @else Submitting... @endif
-                            </span>
-                        </button>
-                    </div>
+                    <button type="button" class="btn btn-secondary" wire:click="closeApplicationModal" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" wire:click="submitApplication" wire:loading.attr="disabled">
+                        <span wire:loading.remove>
+                            @if($isEditMode)
+                                Update Application
+                            @else
+                                Save as Draft
+                            @endif
+                        </span>
+                        <span wire:loading>
+                            <span class="spinner-border spinner-border-sm me-1"></span> 
+                            @if($isEditMode) Updating... @else Saving... @endif
+                        </span>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-  <script>
+    
+    <!-- SweetAlert2 for Draft Saved Notification -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
     document.addEventListener('livewire:initialized', () => {
         // Listen for open application modal event
         Livewire.on('open-application-modal', () => {
@@ -869,6 +878,40 @@ new class extends Component
                 document.body.style.paddingRight = '';
             }, 150);
         });
+        
+        // Listen for draft saved popup
+      // Listen for draft saved popup
+            Livewire.on('show-draft-saved-popup', (data) => {
+                console.log('Draft saved with data:', data); // Debug log
+                
+                // Extract the data from the array (data[0] contains your object)
+                const payload = data[0] || data;
+                
+                Swal.fire({
+                    title: 'Application Saved as Draft!',
+                    html: `
+                        <div style="text-align: left;">
+                            <p><strong>Application Number:</strong> ${payload.applicationNumber}</p>
+                            <p>Your application has been saved as a draft.</p>
+                            <p class="text-warning mt-3"><i class="bi bi-exclamation-triangle"></i> <strong>Important:</strong> You need to review your application before final submission.</p>
+                            <p>Please review all the information you provided and click the <strong>"Submit Application"</strong> button on the next page to complete your application.</p>
+                            <hr>
+                            <p class="text-muted small">You will be redirected to the application review page.</p>
+                        </div>
+                    `,
+                    icon: 'info',
+                    confirmButtonText: 'OK, Review Application',
+                    allowOutsideClick: false,
+                    confirmButtonColor: '#3085d6'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Redirect to call show page with the correct call ID
+                        const callId = payload.callId;
+                        console.log('Redirecting to: /call/' + callId); // Debug log
+                        window.location.href = '/incubation/' + callId;
+                    }
+                });
+            });
     });
-</script>
+    </script>
 </div>

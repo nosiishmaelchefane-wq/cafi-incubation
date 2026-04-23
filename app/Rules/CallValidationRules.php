@@ -9,7 +9,7 @@ class CallValidationRules
         return [
             'title' => 'required|string|max:255',
             'cohort' => 'required|integer',
-            'target_applications' => 'nullable|integer|min:1|max:10000',
+            'target_applications' => 'nullable|integer|min:1|max:1000000',
             'description' => 'required|string|min:10|max:1000',
             'details' => 'nullable|string|max:5000',
             'eligibility' => 'required|string|min:10|max:2000',

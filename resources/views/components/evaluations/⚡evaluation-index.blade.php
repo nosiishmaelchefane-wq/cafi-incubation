@@ -20,7 +20,6 @@ new class extends Component
     public $selectedCohort = null;
     public $selectedCall = null;
     public $search = '';
-    public $sectorFilter = '';
     public $scoreStatusFilter = '';
     public $evaluationWindow = null;
     
@@ -28,7 +27,6 @@ new class extends Component
         'selectedCohort' => ['except' => null],
         'selectedCall' => ['except' => null],
         'search' => ['except' => ''],
-        'sectorFilter' => ['except' => ''],
         'scoreStatusFilter' => ['except' => ''],
     ];
 
@@ -116,8 +114,8 @@ new class extends Component
     }
 
     /**
-     * Get eligible applications for evaluation
-     */
+ * Get eligible applications for evaluation
+ */
     public function getApplicationsProperty()
     {
         if (!$this->selectedCall) {
@@ -136,13 +134,11 @@ new class extends Component
         if ($this->scoreStatusFilter && $this->scoreStatusFilter !== 'all') {
             switch ($this->scoreStatusFilter) {
                 case 'fully_scored':
-                    // Applications where ALL evaluators have submitted scores
                     $query->whereHas('evaluationScores', function($q) use ($totalEvaluators) {
                         $q->where('status', 'submitted');
                     }, '=', $totalEvaluators);
                     break;
                 case 'partially_scored':
-                    // Applications where SOME but NOT ALL evaluators have submitted scores
                     $query->whereHas('evaluationScores', function($q) {
                         $q->where('status', 'submitted');
                     }, '>', 0)
@@ -151,7 +147,6 @@ new class extends Component
                     }, '<', $totalEvaluators);
                     break;
                 case 'not_scored':
-                    // Applications where NO evaluators have submitted scores
                     $query->whereDoesntHave('evaluationScores', function($q) {
                         $q->where('status', 'submitted');
                     });
@@ -168,28 +163,7 @@ new class extends Component
             });
         }
         
-        // Sector filter
-        if ($this->sectorFilter) {
-            $query->where('sector', $this->sectorFilter);
-        }
-        
         return $query->orderBy('created_at', 'desc')->paginate(10);
-    }
-
-    /**
-     * Get unique sectors for filter dropdown
-     */
-    public function getSectorsProperty()
-    {
-        if (!$this->selectedCall) {
-            return collect();
-        }
-        
-        return IncubationApplication::where('call_id', $this->selectedCall)
-            ->whereIn('status', ['eligible', 'in_review'])
-            ->whereNotNull('sector')
-            ->distinct()
-            ->pluck('sector');
     }
 
     /**
@@ -418,11 +392,6 @@ new class extends Component
         $this->resetPage();
     }
 
-    public function updatedSectorFilter()
-    {
-        $this->resetPage();
-    }
-
     public function updatedScoreStatusFilter()
     {
         $this->resetPage();
@@ -586,7 +555,7 @@ new class extends Component
         {{-- KPI STRIP (Clickable Filters) --}}
         @can('view Analytics & Reporting')
             <div class="row g-3 mb-4">
-                <div class="col-6 col-sm-4 col-md-2">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
                     <div class="kpi-mini card border-0 shadow-sm {{ !$scoreStatusFilter || $scoreStatusFilter == 'all' ? 'kpi-active' : '' }}" 
                         wire:click="setFilter('all')">
                         <div class="card-body p-3 text-center">
@@ -596,7 +565,7 @@ new class extends Component
                     </div>
                 </div>
 
-                <div class="col-6 col-sm-4 col-md-2">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
                     <div class="kpi-mini card border-0 shadow-sm {{ $scoreStatusFilter == 'not_scored' ? 'kpi-active' : '' }}" 
                         wire:click="setFilter('not_scored')">
                         <div class="card-body p-3 text-center">
@@ -606,7 +575,7 @@ new class extends Component
                     </div>
                 </div>
 
-                <div class="col-6 col-sm-4 col-md-2">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
                     <div class="kpi-mini card border-0 shadow-sm {{ $scoreStatusFilter == 'partially_scored' ? 'kpi-active' : '' }}" 
                         wire:click="setFilter('partially_scored')">
                         <div class="card-body p-3 text-center">
@@ -616,7 +585,7 @@ new class extends Component
                     </div>
                 </div>
 
-                <div class="col-6 col-sm-4 col-md-2">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
                     <div class="kpi-mini card border-0 shadow-sm {{ $scoreStatusFilter == 'fully_scored' ? 'kpi-active' : '' }}" 
                         wire:click="setFilter('fully_scored')">
                         <div class="card-body p-3 text-center">
@@ -626,20 +595,11 @@ new class extends Component
                     </div>
                 </div>
 
-                <div class="col-6 col-sm-4 col-md-2">
+                <div class="col-6 col-sm-4 col-md-2 col-xl-2">
                     <div class="kpi-mini card border-0 shadow-sm">
                         <div class="card-body p-3 text-center">
                             <div class="fw-bold fs-4 lh-1 text-primary">{{ $this->stats['evaluators_count'] }}</div>
                             <small class="text-muted">Evaluators</small>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-6 col-sm-4 col-md-2">
-                    <div class="kpi-mini card border-0 shadow-sm">
-                        <div class="card-body p-3 text-center">
-                            <div class="fw-bold fs-4 lh-1 text-secondary">{{ $this->stats['average_score'] }}/100</div>
-                            <small class="text-muted">Avg Score</small>
                         </div>
                     </div>
                 </div>
@@ -653,12 +613,6 @@ new class extends Component
                 <span class="badge bg-secondary ms-1">{{ $this->applications->total() }} applications</span>
             </div>
             <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
-                <select class="form-select form-select-sm" style="width:auto;" wire:model.live="sectorFilter">
-                    <option value="">All Sectors</option>
-                    @foreach($this->sectors as $sector)
-                        <option value="{{ $sector }}">{{ $sector }}</option>
-                    @endforeach
-                </select>
                 @if($scoreStatusFilter && $scoreStatusFilter != 'all')
                     <button class="btn btn-sm btn-outline-secondary" wire:click="setFilter('all')">
                         <i class="bi bi-x-circle me-1"></i>Clear Filter
@@ -667,6 +621,7 @@ new class extends Component
             </div>
         </div>
 
+        {{-- SCORING QUEUE TABLE --}}
         {{-- SCORING QUEUE TABLE --}}
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white border-bottom py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -678,16 +633,15 @@ new class extends Component
                     <table class="table table-hover align-middle mb-0 small">
                         <thead class="table-light">
                             <tr>
-                                <th class="px-4 py-3" style="min-width:220px;">Application</th>
-                                <th class="py-3">Sector</th>
-                                <th class="py-3 text-center">Evaluators</th>
+                                <th class="px-4 py-3" style="min-width:250px;">Application</th>
+                                <th class="py-3 text-center" style="min-width:180px;">Evaluators</th>
                                 <th class="py-3 text-center" style="width:130px;">Progress</th>
                                 @if(auth()->user()->hasRole('Evaluation Officer'))
-                                    <th class="py-3 text-center">Final Score</th>
-                                    <th class="py-3 text-center">My Score</th>
+                                    <th class="py-3 text-center" style="min-width:100px;">Final Score</th>
+                                    <th class="py-3 text-center" style="min-width:100px;">My Score</th>
                                 @endif
-                                <th class="py-3">Status</th>
-                                <th class="py-3 text-center">Action</th>
+                                <th class="py-3 text-center" style="min-width:100px;">Status</th>
+                                <th class="py-3 text-center" style="min-width:120px;">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -715,6 +669,7 @@ new class extends Component
                                 $progressPercent = $totalEvals > 0 ? ($completedEvals / $totalEvals) * 100 : 0;
                             @endphp
                             <tr>
+                                <!-- Application Column -->
                                 <td class="px-4 py-3">
                                     <div class="d-flex align-items-center gap-2">
                                         <div class="app-avatar av-green">
@@ -723,14 +678,14 @@ new class extends Component
                                         <div>
                                             <div class="fw-semibold text-dark">{{ $app->company_name }}</div>
                                             <div class="text-muted" style="font-size:.72rem;">
-                                                {{ $app->application_number }} · {{ $app->district ?? 'N/A' }}
+                                                {{ $app->application_number }} · {{ $app->district ?? 'Maseru' }}
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                <td>
-                                    <span class="badge bg-light text-dark border">{{ $app->sector ?? 'N/A' }}</span>
-                                </div>
+                                </td>
+                                
+                                <!-- Evaluators Column -->
+                                <!-- Evaluators Column -->
                                 <td class="text-center">
                                     <div class="d-flex justify-content-center gap-1">
                                         @foreach($assignedEvals as $eval)
@@ -739,14 +694,22 @@ new class extends Component
                                                     ->where('evaluator_id', $eval->user_id)
                                                     ->where('status', 'submitted')
                                                     ->exists();
+                                                
+                                                // Use the evaluator relationship
+                                                $evaluatorUser = $eval->evaluator;
+                                                $displayName = $evaluatorUser?->username ?: ($evaluatorUser?->email ? explode('@', $evaluatorUser->email)[0] : 'Eval');
+                                                $initials = strtoupper(substr($displayName, 0, 2));
                                             @endphp
                                             <div class="ev-avatar {{ $hasScored ? 'bg-success text-white' : 'bg-light text-muted border' }}" 
-                                                 title="{{ $eval->evaluator->username ?? 'Evaluator' }} {{ $hasScored ? '- Scored' : '- Not Scored' }}">
-                                                {{ substr($eval->evaluator->username ?? 'E', 0, 2) }}
+                                                style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;"
+                                                title="{{ $displayName }} {{ $hasScored ? '- Scored' : '- Not Scored' }}">
+                                                {{ $initials }}
                                             </div>
                                         @endforeach
                                     </div>
-                                </div>
+                                </td>
+                                
+                                <!-- Progress Column -->
                                 <td class="text-center">
                                     <div class="d-flex align-items-center gap-2">
                                         <div class="progress flex-grow-1" style="height:6px;">
@@ -754,37 +717,60 @@ new class extends Component
                                         </div>
                                         <span class="text-muted small">{{ $completedEvals }}/{{ $totalEvals }}</span>
                                     </div>
-                                </div>
-                                <td class="text-center">
-                                    @if($avgScore)
-                                        <div class="fw-bold fs-6 lh-1 {{ $avgScore >= 70 ? 'text-success' : ($avgScore >= 50 ? 'text-warning' : 'text-danger') }}">
-                                            {{ round($avgScore) }}/100
-                                        </div>
-                                        <div class="text-muted" style="font-size:.68rem;">avg of {{ $completedEvals }}</div>
-                                    @else
-                                        <span class="text-muted small">—</span>
-                                    @endif
-                                </div>
-                               @if(auth()->user()->hasRole('Evaluation Officer'))
+                                </td>
+                                
+                                <!-- Final Score Column (only for Evaluation Officer) -->
+                                @if(auth()->user()->hasRole('Evaluation Officer'))
+                                    <td class="text-center">
+                                        @if($avgScore)
+                                            <div class="fw-bold fs-6 lh-1 {{ $avgScore >= 70 ? 'text-success' : ($avgScore >= 50 ? 'text-warning' : 'text-danger') }}">
+                                                {{ round($avgScore) }}/100
+                                            </div>
+                                            <div class="text-muted" style="font-size:.68rem;">avg of {{ $completedEvals }}</div>
+                                        @else
+                                            <span class="text-muted small">—</span>
+                                        @endif
+                                    </td>
+                                @endif
+                                
+                                <!-- My Score Column (only for Evaluation Officer) -->
+                                @if(auth()->user()->hasRole('Evaluation Officer'))
                                     <td class="text-center">
                                         @if($myScore)
-                                            <span class="badge bg-primary bg-opacity-15 text-white fw-bold">{{ round($myScore) }}/100</span>
+                                            <span class="badge bg-primary bg-opacity-15 text-primary fw-bold px-2 py-1 rounded-pill">{{ round($myScore) }}/100</span>
                                         @else
-                                            <span class="badge bg-warning bg-opacity-15 text-white">Pending</span>
+                                            <span class="badge bg-warning bg-opacity-15 text-warning px-2 py-1 rounded-pill">Pending</span>
                                         @endif
-                                    </div>
-
-                                    <td class="text-center">
-                                        @if($scoreStatus == 'submitted')
-                                            <span class="badge rounded-pill bg-success text-white">Scored</span>
-                                        @elseif($scoreStatus == 'draft')
-                                            <span class="badge rounded-pill bg-info text-white">In Progress</span>
-                                        @else
-                                            <span class="badge rounded-pill bg-warning text-white">Not Scored</span>
-                                        @endif
-                                    </div>
+                                    </td>
                                 @endif
-                               <td class="text-center">
+                                
+                                <!-- Status Column -->
+                                <td class="text-center">
+                                    @if(auth()->user()->hasRole('Evaluation Officer'))
+                                        @if($scoreStatus == 'submitted')
+                                            <span class="badge rounded-pill bg-success px-2 py-1">Scored</span>
+                                        @elseif($scoreStatus == 'draft')
+                                            <span class="badge rounded-pill bg-info px-2 py-1">In Progress</span>
+                                        @else
+                                            <span class="badge rounded-pill bg-warning px-2 py-1">Not Scored</span>
+                                        @endif
+                                    @else
+                                        @php
+                                            $allSubmitted = $completedEvals == $totalEvals && $totalEvals > 0;
+                                            $someSubmitted = $completedEvals > 0 && $completedEvals < $totalEvals;
+                                        @endphp
+                                        @if($allSubmitted)
+                                            <span class="badge rounded-pill bg-success px-2 py-1">Fully Scored</span>
+                                        @elseif($someSubmitted)
+                                            <span class="badge rounded-pill bg-info px-2 py-1">Partial</span>
+                                        @else
+                                            <span class="badge rounded-pill bg-warning px-2 py-1">Pending</span>
+                                        @endif
+                                    @endif
+                                </td>
+                                
+                                <!-- Action Column -->
+                                <td class="text-center">
                                     @php
                                         $userScore = $app->evaluationScores()
                                             ->where('evaluator_id', Auth::id())
@@ -814,14 +800,14 @@ new class extends Component
                                         </button>
                                     @endif
                                 </td>
-                            </div>
+                            </tr>
                             @empty
                             <tr>
-                                <td colspan="8" class="text-center py-5 text-muted">
+                                <td colspan="7" class="text-center py-5 text-muted">
                                     <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
                                     No eligible applications found for this call.
-                                </div>
-                            </div>
+                                </td>
+                            </tr>
                             @endforelse
                         </tbody>
                     </table>

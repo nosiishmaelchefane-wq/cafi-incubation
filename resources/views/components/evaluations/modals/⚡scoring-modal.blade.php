@@ -767,6 +767,7 @@ new class extends Component
                 </div>
 
                 <!-- ==================== EVALUATORS TAB ==================== -->
+                <!-- ==================== EVALUATORS TAB ==================== -->
                 <div style="{{ $activeTab != 'evaluators' ? 'display: none;' : '' }}">
                     @php
                         $assignedEvaluators = \App\Models\AssignedEvaluator::where('call_id', $application->call_id ?? 0)
@@ -777,6 +778,7 @@ new class extends Component
                         foreach ($assignedEvaluators as $eval) {
                             $hasScored = \App\Models\EvaluationScore::where('call_id', $application->call_id ?? 0)
                                 ->where('evaluator_id', $eval->user_id)
+                                ->where('application_id', $application->id)
                                 ->where('status', 'submitted')
                                 ->exists();
                             if ($hasScored) $completedEvaluators++;
@@ -791,7 +793,13 @@ new class extends Component
                     <div class="table-responsive">
                         <table class="table table-hover align-middle small">
                             <thead class="table-light">
-                                <tr><th>Evaluator</th><th>Role</th><th class="text-center">Status</th><th class="text-center">Score</th><th class="text-center">Date</th></tr>
+                                <tr>
+                                    <th>Evaluator</th>
+                                    <th>Role</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center">Score</th>
+                                    <th class="text-center">Date</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 @forelse($assignedEvaluators as $evaluator)
@@ -802,16 +810,60 @@ new class extends Component
                                         ->first();
                                     $hasScored = $score && $score->status == 'submitted';
                                     $isCurrentUser = $evaluator->user_id == Auth::id();
+                                    
+                                    // Use the evaluator relationship to get user details
+                                    $evaluatorUser = $evaluator->evaluator;
+                                    $displayName = $evaluatorUser?->username ?: ($evaluatorUser?->email ? explode('@', $evaluatorUser->email)[0] : 'Unknown');
+                                    $initials = strtoupper(substr($displayName, 0, 2));
+                                    $roleName = $evaluatorUser?->roles->first()->name ?? 'Evaluator';
                                 @endphp
                                 <tr class="{{ $isCurrentUser ? 'table-primary' : '' }}">
-                                    <td><div class="d-flex align-items-center gap-2"><div class="ev-lg-avatar bg-primary text-white">{{ substr($evaluator->evaluator->username ?? 'E', 0, 2) }}</div><div><div class="fw-medium">{{ $evaluator->evaluator->username ?? 'Unknown' }}</div><div class="text-muted small">{{ $evaluator->evaluator->email ?? '' }}</div></div></div>@if($isCurrentUser)<span class="badge bg-primary mt-1">You</span>@endif</div>
-                                    <td>{{ $evaluator->evaluator->roles->first()->name ?? 'Evaluator' }}</div>
-                                    <td class="text-center">@if($hasScored)<span class="badge bg-success">Completed</span>@elseif($score && $score->status == 'draft')<span class="badge bg-warning">In Progress</span>@else<span class="badge bg-secondary">Pending</span>@endif</div>
-                                    <td class="text-center">@if($hasScored)<span class="fw-bold text-success">{{ $score->total_score }}/100</span>@else<span class="text-muted">—</span>@endif</div>
-                                    <td class="text-center">@if($score && $score->submitted_at){{ $score->submitted_at->format('d M Y') }}@else<span class="text-muted">—</span>@endif</div>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="ev-lg-avatar" style="width: 36px; height: 36px; border-radius: 50%; background-color: {{ $isCurrentUser ? '#0d6efd' : '#6c757d' }}; color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600;">
+                                                {{ $initials }}
+                                            </div>
+                                            <div>
+                                                <div class="fw-medium">{{ $displayName }}</div>
+                                                <div class="text-muted small">{{ $evaluatorUser?->email ?? '' }}</div>
+                                            </div>
+                                        </div>
+                                        @if($isCurrentUser)
+                                            <span class="badge bg-primary mt-1">You</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $roleName }}</td>
+                                    <td class="text-center">
+                                        @if($hasScored)
+                                            <span class="badge bg-success">Completed</span>
+                                        @elseif($score && $score->status == 'draft')
+                                            <span class="badge bg-warning">In Progress</span>
+                                        @else
+                                            <span class="badge bg-secondary">Pending</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        @if($hasScored)
+                                            <span class="fw-bold text-success">{{ $score->total_score }}/100</span>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        @if($score && $score->submitted_at)
+                                            {{ $score->submitted_at->format('d M Y') }}
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
                                 </tr>
                                 @empty
-                                <tr><td colspan="5" class="text-center py-4 text-muted"><i class="bi bi-people fs-4 d-block mb-2 opacity-50"></i>No evaluators assigned to this call yet.</div></tr>
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        <i class="bi bi-people fs-4 d-block mb-2 opacity-50"></i>
+                                        No evaluators assigned to this call yet.
+                                    </td>
+                                </tr>
                                 @endforelse
                             </tbody>
                         </table>

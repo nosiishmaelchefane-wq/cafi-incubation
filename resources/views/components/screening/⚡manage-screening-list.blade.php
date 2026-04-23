@@ -14,7 +14,6 @@ new class extends Component {
     public $selectedCohort = null;
     public $search = '';
     public $statusFilter = '';
-    public $sectorFilter = '';
     public $districtFilter = '';
     public $perPage = 10;
     public $selectedApplicationId = null;
@@ -23,7 +22,6 @@ new class extends Component {
         'selectedCohort' => ['except' => null],
         'search' => ['except' => ''],
         'statusFilter' => ['except' => ''],
-        'sectorFilter' => ['except' => ''],
         'districtFilter' => ['except' => ''],
     ];
 
@@ -105,11 +103,6 @@ new class extends Component {
             $query->where('status', $this->statusFilter);
         }
         
-        // Sector filter
-        if ($this->sectorFilter) {
-            $query->where('sector', $this->sectorFilter);
-        }
-        
         // District filter
         if ($this->districtFilter) {
             $query->where('district', $this->districtFilter);
@@ -149,27 +142,6 @@ new class extends Component {
     }
 
     /**
-     * Get unique sectors for filter dropdown
-     */
-    public function getSectorsProperty()
-    {
-        $query = IncubationApplication::query()
-            ->where('status', '!=', 'draft')
-            ->whereNotNull('sector');
-        
-        if ($this->selectedCohort) {
-            $cohort = Cohort::find($this->selectedCohort);
-            if ($cohort) {
-                $query->whereHas('call', function($q) use ($cohort) {
-                    $q->where('cohort', $cohort->cohort_number);
-                });
-            }
-        }
-        
-        return $query->distinct()->pluck('sector');
-    }
-
-    /**
      * Get unique districts for filter dropdown
      */
     public function getDistrictsProperty()
@@ -205,11 +177,6 @@ new class extends Component {
         $this->resetPage();
     }
 
-    public function updatedSectorFilter()
-    {
-        $this->resetPage();
-    }
-
     public function updatedDistrictFilter()
     {
         $this->resetPage();
@@ -219,7 +186,6 @@ new class extends Component {
     {
         $this->search = '';
         $this->statusFilter = '';
-        $this->sectorFilter = '';
         $this->districtFilter = '';
         
         if (!$this->selectedCohort) {
@@ -419,7 +385,7 @@ new class extends Component {
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-3">
             <div class="row g-2 align-items-end">
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-6">
                     <label class="form-label small fw-medium mb-1">Search</label>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-white border-end-0">
@@ -428,16 +394,7 @@ new class extends Component {
                         <input type="text" class="form-control border-start-0" placeholder="Enterprise name, ID, owner…" wire:model.live.debounce.300ms="search">
                     </div>
                 </div>
-                <div class="col-6 col-md-2">
-                    <label class="form-label small fw-medium mb-1">Sector</label>
-                    <select class="form-select form-select-sm" wire:model.live="sectorFilter">
-                        <option value="">All Sectors</option>
-                        @foreach($this->sectors as $sector)
-                            <option value="{{ $sector }}">{{ $sector }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-6 col-md-2">
+                <div class="col-6 col-md-3">
                     <label class="form-label small fw-medium mb-1">District</label>
                     <select class="form-select form-select-sm" wire:model.live="districtFilter">
                         <option value="">All Districts</option>
@@ -446,7 +403,7 @@ new class extends Component {
                         @endforeach
                     </select>
                 </div>
-                <div class="col-6 col-md-2 d-flex gap-2">
+                <div class="col-6 col-md-3 d-flex gap-2">
                     <button class="btn btn-sm btn-outline-secondary w-100" wire:click="resetFilters">
                         <i class="bi bi-x-circle me-1"></i>Reset
                     </button>
@@ -482,7 +439,6 @@ new class extends Component {
                         <tr>
                             <th class="px-3 py-3" style="width:40px;"></th>
                             <th class="py-3">Application</th>
-                            <th class="py-3">Sector</th>
                             <th class="py-3">District</th>
                             <th class="py-3">Stage</th>
                             <th class="py-3">Submitted</th>
@@ -503,7 +459,6 @@ new class extends Component {
                                     </div>
                                 </div>
                             </td>
-                            <td><span class="badge bg-light text-dark border">{{ $app->sector ?? 'N/A' }}</span></td>
                             <td>{{ $app->district ?? 'N/A' }}</td>
                             <td><span class="badge bg-secondary bg-opacity-10 text-primary">{{ $app->company_stage ?? 'N/A' }}</span></td>
                             <td>{{ $app->submitted_at ? $app->submitted_at->format('d M Y') : 'N/A' }}</td>
@@ -523,7 +478,7 @@ new class extends Component {
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-1">
                                     <!-- Only show action buttons when status is 'in_review' -->
-                                    @if($app->status == 'in_review' || $app->status == 'eligible' )
+                                    @if($app->status == 'in_review' || $app->status == 'eligible')
                                         <button class="btn btn-sm btn-outline-primary py-1 px-2" 
                                                 wire:click="$dispatch('openReviewPanel', { applicationId: {{ $app->id }} })" 
                                                 title="Review Application">
@@ -545,7 +500,7 @@ new class extends Component {
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="9" class="text-center py-5 text-muted">
+                            <td colspan="7" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
                                 No applications found matching your criteria.
                             </td>
@@ -566,8 +521,6 @@ new class extends Component {
     </div>
 </div>
 </div>
-
-<!-- Include the Review Panel Component -->
 
 <style>
     [x-cloak] { display: none !important; }

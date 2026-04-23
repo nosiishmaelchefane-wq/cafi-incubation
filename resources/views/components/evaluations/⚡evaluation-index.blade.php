@@ -610,7 +610,7 @@ new class extends Component
         <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
             <div class="d-flex align-items-center gap-1 text-muted small">
                 <i class="bi bi-table me-1"></i>Scoring Queue
-                <span class="badge bg-secondary ms-1">{{ $this->applications->total() }} applications</span>
+                <span class="badge bg-secondary ms-1">{{ method_exists($this->applications, 'total') ? $this->applications->total() : $this->applications->count() }} applications</span>
             </div>
             <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
                 @if($scoreStatusFilter && $scoreStatusFilter != 'all')
@@ -815,10 +815,16 @@ new class extends Component
 
                 <div class="d-flex flex-wrap align-items-center justify-content-between px-4 py-3 border-top gap-2">
                     <small class="text-muted">
-                        Showing {{ $this->applications->firstItem() ?? 0 }}–{{ $this->applications->lastItem() ?? 0 }} 
-                        of {{ $this->applications->total() }} applications
+                        @if(method_exists($this->applications, 'total') && $this->applications->total() > 0)
+                            Showing {{ $this->applications->firstItem() }}–{{ $this->applications->lastItem() }} 
+                            of {{ $this->applications->total() }} applications
+                        @else
+                            Showing 0 applications
+                        @endif
                     </small>
-                    {{ $this->applications->links() }}
+                    @if(method_exists($this->applications, 'links'))
+                        {{ $this->applications->links() }}
+                    @endif
                 </div>
             </div>
         </div>

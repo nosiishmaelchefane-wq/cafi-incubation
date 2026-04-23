@@ -14,7 +14,7 @@ class RegisterValidationRules
         return [
             'name' => ['required', 'string', 'max:255'],  // Changed from first_name/last_name
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'confirmed', Password::min(10)],
+            'password' => ['required', 'confirmed', Password::min(8)],
             'terms' => ['required', 'accepted'],
         ];
     }

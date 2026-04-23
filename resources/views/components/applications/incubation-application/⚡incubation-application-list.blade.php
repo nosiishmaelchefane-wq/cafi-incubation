@@ -15,7 +15,6 @@ new class extends Component
     
     // Filters
     public $search = '';
-    public $sectorFilter = '';
     public $districtFilter = '';
     public $stageFilter = '';
     public $statusFilter = '';
@@ -71,9 +70,6 @@ new class extends Component
             });
         }
 
-        if ($this->sectorFilter) {
-            $query->where('sector', $this->sectorFilter);
-        }
 
         if ($this->districtFilter) {
             $query->where('district', $this->districtFilter);
@@ -178,7 +174,6 @@ new class extends Component
     public function resetFilters()
     {
         $this->search = '';
-        $this->sectorFilter = '';
         $this->districtFilter = '';
         $this->stageFilter = '';
         $this->statusFilter = '';
@@ -229,12 +224,7 @@ new class extends Component
     {
         $this->resetPage();
     }
-    
-    public function updatedSectorFilter()
-    {
-        $this->resetPage();
-    }
-    
+
     public function updatedDistrictFilter()
     {
         $this->resetPage();
@@ -338,15 +328,7 @@ new class extends Component
                         <input type="text" class="cds-search-input" placeholder="Search enterprise, owner, ID…" wire:model.live.debounce.300ms="search">
                     </div>
                 </div>
-                <div class="col-6 col-md-2">
-                    <select class="cds-select" wire:model.live="sectorFilter">
-                        <option value="">All Sectors</option>
-                        <option>Primary</option>
-                        <option>Secondary</option>
-                        <option>Tertiary</option>
-                        <option>Quaternary</option>
-                    </select>
-                </div>
+       
                 <div class="col-6 col-md-2">
                     <select class="cds-select" wire:model.live="districtFilter">
                         <option value="">All Districts</option>
@@ -390,7 +372,6 @@ new class extends Component
                         <th style="min-width:210px;">Application #</th>
                         <th>Enterprise</th>
                         <th>Applicant</th>
-                        <th>Sector</th>
                         <th>District</th>
                         <th>Submitted</th>
                         <th>Status</th>
@@ -409,9 +390,6 @@ new class extends Component
                             </td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="cds-av {{ $this->getAvColor($app->sector) }}">
-                                        <span>{{ $this->getInitials($app->company_name) }}</span>
-                                    </div>
                                     <div>
                                         <div class="fw-semibold text-dark small">{{ $app->company_name }}</div>
                                         @if($app->registered_company_name)
@@ -424,9 +402,7 @@ new class extends Component
                                 <div class="small">{{ $app->applicant_name }}</div>
                                 <div class="cds-sub-text">{{ $app->applicant_email }}</div>
                             </td>
-                            <td>
-                                <span class="cds-sector-tag cds-sector-tag-sm">{{ $app->sector ?? 'N/A' }}</span>
-                            </td>
+    
                             <td class="small">{{ $app->district ?? 'N/A' }}</td>
                             <td class="small">{{ $app->submitted_at ? $app->submitted_at->format('d M Y') : 'N/A' }}</td>
                             <td>

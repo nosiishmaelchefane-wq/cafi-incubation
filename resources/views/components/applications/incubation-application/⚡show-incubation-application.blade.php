@@ -175,7 +175,44 @@ new class extends Component
             <!-- Top bar -->
             <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
                 <div class="d-flex flex-wrap gap-2 align-items-center">
-                    <span class="app-status-pill pill-{{ strtolower(str_replace(' ', '-', $application->status ?? 'pending')) }}">
+                    <!-- Status Badge with Different Colors -->
+                    <!-- Status Badge with Bootstrap Colors -->
+                   <!-- Status Badge with Fading/Soft Colors using Bootstrap bg-opacity -->
+                    <span class="badge 
+                        @if(($application->status ?? 'pending') == 'draft')
+                            bg-secondary bg-opacity-10 text-secondary
+                        @elseif(($application->status ?? 'pending') == 'submitted')
+                            bg-primary bg-opacity-10 text-primary
+                        @elseif(($application->status ?? 'pending') == 'under_review')
+                            bg-info bg-opacity-10 text-info
+                        @elseif(($application->status ?? 'pending') == 'shortlisted')
+                            bg-warning bg-opacity-10 text-warning
+                        @elseif(($application->status ?? 'pending') == 'accepted')
+                            bg-success bg-opacity-10 text-success
+                        @elseif(($application->status ?? 'pending') == 'rejected')
+                            bg-danger bg-opacity-10 text-danger
+                        @else
+                            bg-secondary bg-opacity-10 text-secondary
+                        @endif
+                        px-3 py-2 rounded-pill fs-12 fw-semibold border-0">
+                        
+                        <i class="bi 
+                            @if(($application->status ?? 'pending') == 'draft')
+                                bi-pencil-square
+                            @elseif(($application->status ?? 'pending') == 'submitted')
+                                bi-send-check
+                            @elseif(($application->status ?? 'pending') == 'under_review')
+                                bi-hourglass-split
+                            @elseif(($application->status ?? 'pending') == 'shortlisted')
+                                bi-star-fill
+                            @elseif(($application->status ?? 'pending') == 'accepted')
+                                bi-check-circle-fill
+                            @elseif(($application->status ?? 'pending') == 'rejected')
+                                bi-x-circle-fill
+                            @else
+                                bi-clock-history
+                            @endif
+                            me-1"></i>
                         {{ ucfirst($application->status ?? 'Pending') }}
                     </span>
                     <span class="app-meta-tag"><i class="bi bi-hash me-1"></i>{{ $application->application_number }}</span>
@@ -217,9 +254,6 @@ new class extends Component
                     <div class="d-flex flex-wrap gap-3 app-hero-meta">
                         @if($application->industry)
                             <span><i class="bi bi-grid-3x3 me-1"></i>{{ $application->industry }}</span>
-                        @endif
-                        @if($application->sector)
-                            <span><i class="bi bi-tag me-1"></i>{{ $application->sector }}</span>
                         @endif
                         @if($application->district || $application->country)
                             <span><i class="bi bi-geo-alt me-1"></i>{{ collect([$application->district, $application->country])->filter()->implode(', ') }}</span>
@@ -288,9 +322,7 @@ new class extends Component
 
             <!-- LEFT COLUMN (8/12) -->
             <div class="col-12 col-xl-8">
-
-                <!-- 1. Business Information -->
-                <!-- 1. Business Information -->
+                <!-- Business Information Section - Updated with Area of Operation -->
                 <div class="app-card mb-4">
                     <div class="app-card-header">
                         <div class="app-section-icon" style="background:rgba(59,130,246,.1);color:#3b82f6;"><i class="bi bi-building-fill"></i></div>
@@ -336,17 +368,6 @@ new class extends Component
                                     <div class="app-field-val">{{ $application->industry ?? '—' }}</div>
                                 </div>
                             </div>
-                            <div class="col-12 col-md-6">
-                                <div class="app-field">
-                                    <div class="app-field-label">Sector</div>
-                                    <div class="app-field-val">
-                                        @if($application->sector)
-                                            <span class="app-sector-tag">{{ $application->sector }}</span>
-                                        @else —
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
                             @if($application->industry_other_elaboration)
                             <div class="col-12">
                                 <div class="app-field">
@@ -379,6 +400,26 @@ new class extends Component
                                     <div class="app-field-val">{{ $application->district ?? '—' }}</div>
                                 </div>
                             </div>
+                            <!-- NEW: Area of Operation Field -->
+                            <div class="col-12 col-md-6">
+                                <div class="app-field">
+                                    <div class="app-field-label">Area of Operation</div>
+                                    <div class="app-field-val">
+                                        @php
+                                            $areaOfOperation = null;
+                                            if ($application->user && $application->user->isEntrepreneur()) {
+                                                $areaOfOperation = $application->user->userable->area_of_operation ?? null;
+                                            }
+                                        @endphp
+                                        @if($areaOfOperation)
+                                            <span class="app-stage-tag">{{ $areaOfOperation }}</span>
+                                        @else
+                                            <span class="text-muted">— Not specified —</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- End Area of Operation Field -->
                             <div class="col-12 col-md-6">
                                 <div class="app-field">
                                     <div class="app-field-label">Website</div>

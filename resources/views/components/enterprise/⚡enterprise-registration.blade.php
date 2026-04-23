@@ -24,49 +24,22 @@ new class extends Component {
     public string $surname = '';
     public string $gender = '';
     public string $date_of_birth = '';
-    public string $country = 'Lesotho';
     public string $area_of_operation = '';
-    public string $industry_or_interest = '';
-    public ?int $years_of_operation = null;
     public string $short_bio = '';
     public string $organization_name = '';
     
-    // File uploads
+    // File uploads (optional now)
     public $profile_image = null;
     public $tax_clearance = null;
     public $traders_license = null;
     
     // Step management
     public int $currentStep = 1;
-    public int $totalSteps = 4;
+    public int $totalSteps = 3;
     
-    // Industry options
-    public array $industries = [
-        'Agriculture', 'Technology', 'Manufacturing', 'Banking', 'Education',
-        'Healthcare', 'Retail', 'Construction', 'Tourism', 'Transportation',
-        'Energy', 'Mining', 'Financial Services', 'Real Estate', 'Creative Arts',
-        'Food & Beverage', 'Consulting', 'Other'
-    ];
-    
-    // Country options
-    public array $countries = [];
-
     public function mount()
     {
-        $this->countries = [
-            'Lesotho', 'South Africa', 'Botswana', 'Eswatini', 'Namibia',
-            'Zimbabwe', 'Mozambique', 'Zambia', 'Malawi', 'Angola', 'Tanzania',
-            'Kenya', 'Uganda', 'Rwanda', 'Burundi', 'Ethiopia', 'Nigeria',
-            'Ghana', 'Egypt', 'Morocco', 'United States', 'United Kingdom',
-            'Canada', 'Australia', 'Germany', 'France', 'Italy', 'Spain',
-            'Portugal', 'Netherlands', 'Belgium', 'Switzerland', 'Sweden',
-            'Norway', 'Denmark', 'Finland', 'China', 'India', 'Japan',
-            'South Korea', 'Singapore', 'Malaysia', 'Indonesia', 'Philippines',
-            'Vietnam', 'Thailand', 'Brazil', 'Argentina', 'Mexico', 'Colombia',
-            'Chile', 'Peru'
-        ];
-        sort($this->countries);
-        $this->countries = array_merge(['Lesotho'], array_diff($this->countries, ['Lesotho']));
+        // No longer needed for country options
     }
 
     public function getStepValidationRules(int $step): array
@@ -75,7 +48,7 @@ new class extends Component {
             return [
                 'email' => 'required|email|unique:users,email',
                 'phone' => 'required|string|max:20',
-                'password' => 'required|min:10|confirmed',
+                'password' => 'required|min:8|confirmed',
                 'terms' => 'accepted',
             ];
         } elseif ($step == 2) {
@@ -88,17 +61,11 @@ new class extends Component {
             ];
         } elseif ($step == 3) {
             return [
-                'country' => 'required|string',
                 'area_of_operation' => 'required|string|max:255',
-                'industry_or_interest' => 'required|string',
-                'years_of_operation' => 'required|integer|min:0|max:100',
-            ];
-        } elseif ($step == 4) {
-            return [
                 'short_bio' => 'nullable|string|max:1000',
                 'organization_name' => 'required|string|max:255',
-                'tax_clearance' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-                'traders_license' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+                'tax_clearance' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+                'traders_license' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             ];
         }
         
@@ -113,7 +80,7 @@ new class extends Component {
             'email.unique' => 'This email is already registered.',
             'phone.required' => 'Phone number is required.',
             'password.required' => 'Password is required.',
-            'password.min' => 'Password must be at least 10 characters.',
+            'password.min' => 'Password must be at least 8 characters.',
             'password.confirmed' => 'Password confirmation does not match.',
             'terms.accepted' => 'You must agree to the Terms & Privacy policy.',
             'first_name.required' => 'First name is required.',
@@ -123,16 +90,10 @@ new class extends Component {
             'date_of_birth.before' => 'You must be at least 18 years old.',
             'profile_image.image' => 'File must be an image (JPG, PNG, GIF).',
             'profile_image.max' => 'Image size must not exceed 2MB.',
-            'country.required' => 'Country is required.',
             'area_of_operation.required' => 'Area of operation is required.',
-            'industry_or_interest.required' => 'Industry is required.',
-            'years_of_operation.required' => 'Years of operation is required.',
-            'years_of_operation.integer' => 'Please enter a valid number.',
             'organization_name.required' => 'Organization name is required.',
-            'tax_clearance.required' => 'Tax clearance certificate is required.',
             'tax_clearance.mimes' => 'File must be PDF, JPG, or PNG.',
             'tax_clearance.max' => 'File size must not exceed 5MB.',
-            'traders_license.required' => 'Trader\'s license is required.',
             'traders_license.mimes' => 'File must be PDF, JPG, or PNG.',
             'traders_license.max' => 'File size must not exceed 5MB.',
         ];
@@ -191,10 +152,7 @@ new class extends Component {
                 'surname' => $this->surname,
                 'gender' => $this->gender,
                 'date_of_birth' => $this->date_of_birth,
-                'country' => $this->country,
                 'area_of_operation' => $this->area_of_operation,
-                'industry_or_interest' => $this->industry_or_interest,
-                'years_of_operation' => $this->years_of_operation,
                 'short_bio' => $this->short_bio,
                 'organization_name' => $this->organization_name,
                 'tax_clearance_path' => $taxClearancePath,
@@ -209,7 +167,7 @@ new class extends Component {
                 'username' => $username,
                 'userable_type' => Entrepreneur::class,
                 'userable_id' => $entrepreneur->id,
-                'is_active' => false,
+                'is_active' => true,
             ]);
             
             $user->assignRole('Applicant');
@@ -264,7 +222,6 @@ new class extends Component {
                             @case(1) Account @break
                             @case(2) Personal @break
                             @case(3) Business @break
-                            @case(4) Details @break
                         @endswitch
                     </div>
                 </div>
@@ -295,7 +252,7 @@ new class extends Component {
             <div class="field-row">
                 <div class="field">
                     <label>Password <span class="required-asterisk">*</span></label>
-                    <input type="password" wire:model.live="password" placeholder="Min. 10 characters">
+                    <input type="password" wire:model.live="password" placeholder="Min. 8 characters">
                     @error('password') <span class="error">{{ $message }}</span> @enderror
                 </div>
                 
@@ -367,44 +324,6 @@ new class extends Component {
 
         {{-- Step 3: Business Information --}}
         <div x-show="step === 3" x-cloak>
-            <div class="field-row">
-                <div class="field">
-                    <label>Country <span class="required-asterisk">*</span></label>
-                    <select wire:model.live="country">
-                        @foreach($this->countries as $countryOption)
-                            <option value="{{ $countryOption }}">{{ $countryOption }}</option>
-                        @endforeach
-                    </select>
-                    @error('country') <span class="error">{{ $message }}</span> @enderror
-                </div>
-                
-                <div class="field">
-                    <label>Area of Operation <span class="required-asterisk">*</span></label>
-                    <input type="text" wire:model.live="area_of_operation" placeholder="City/District/Region">
-                    @error('area_of_operation') <span class="error">{{ $message }}</span> @enderror
-                </div>
-            </div>
-            
-            <div class="field">
-                <label>Industry <span class="required-asterisk">*</span></label>
-                <select wire:model.live="industry_or_interest">
-                    <option value="">Select Industry</option>
-                    @foreach($this->industries as $industry)
-                        <option value="{{ $industry }}">{{ $industry }}</option>
-                    @endforeach
-                </select>
-                @error('industry_or_interest') <span class="error">{{ $message }}</span> @enderror
-            </div>
-            
-            <div class="field">
-                <label>Years of Operation <span class="required-asterisk">*</span></label>
-                <input type="number" wire:model.live="years_of_operation" min="0" max="100" placeholder="e.g., 5">
-                @error('years_of_operation') <span class="error">{{ $message }}</span> @enderror
-            </div>
-        </div>
-
-        {{-- Step 4: Additional Details --}}
-        <div x-show="step === 4" x-cloak>
             <div class="field">
                 <label>Organization Name <span class="required-asterisk">*</span></label>
                 <input type="text" wire:model.live="organization_name" placeholder="Your Business Name">
@@ -412,17 +331,24 @@ new class extends Component {
             </div>
             
             <div class="field">
+                <label>Area of Operation <span class="required-asterisk">*</span></label>
+                <input type="text" wire:model.live="area_of_operation" placeholder="City/District/Region">
+                @error('area_of_operation') <span class="error">{{ $message }}</span> @enderror
+            </div>
+            
+            <div class="field">
                 <label>Short Bio</label>
-                <textarea wire:model.live="short_bio" rows="3" placeholder="Tell us about yourself..."></textarea>
+                <textarea wire:model.live="short_bio" rows="3" placeholder="Tell us about yourself and your business..."></textarea>
                 <small>Max 1000 characters. Current: <strong>{{ strlen($short_bio) }}</strong></small>
                 @error('short_bio') <span class="error">{{ $message }}</span> @enderror
             </div>
             
             <div class="documents-section">
-                <h4>Required Documents</h4>
+                <h4>Optional Documents</h4>
+                <p class="text-muted small mb-3">These documents are not required but can help verify your business.</p>
                 
                 <div class="field">
-                    <label>Tax Clearance Certificate <span class="required-asterisk">*</span></label>
+                    <label>Tax Clearance Certificate (Optional)</label>
                     <input type="file" wire:model.live="tax_clearance" accept=".pdf,.jpg,.jpeg,.png">
                     <small>Max size: <strong>5MB</strong>. Accepted: PDF, JPG, PNG</small>
                     @error('tax_clearance') <span class="error">{{ $message }}</span> @enderror
@@ -433,7 +359,7 @@ new class extends Component {
                 </div>
                 
                 <div class="field">
-                    <label>Trader's License <span class="required-asterisk">*</span></label>
+                    <label>Trader's License (Optional)</label>
                     <input type="file" wire:model.live="traders_license" accept=".pdf,.jpg,.jpeg,.png">
                     <small>Max size: <strong>5MB</strong>. Accepted: PDF, JPG, PNG</small>
                     @error('traders_license') <span class="error">{{ $message }}</span> @enderror
@@ -692,7 +618,7 @@ new class extends Component {
     
     .documents-section h4 {
         font-size: 0.9rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem;
         color: var(--navy);
     }
     

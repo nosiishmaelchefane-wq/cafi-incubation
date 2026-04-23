@@ -20,13 +20,10 @@ return new class extends Migration
             $table->date('date_of_birth')->nullable();
             
             // Location
-            $table->string('country')->default('Lesotho');
             $table->string('area_of_operation')->nullable();
             
             // Business Information
             $table->string('organization_name')->nullable();
-            $table->string('industry_or_interest')->nullable();
-            $table->integer('years_of_operation')->nullable();
             $table->text('short_bio')->nullable();
             
             // Documents

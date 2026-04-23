@@ -185,33 +185,42 @@
             </li>
             @endcan
 
-            <!-- POST INCUBATION - Admin only -->
+            <!-- COHORT MANAGEMENT - Dedicated Section (moved out of Post-Incubation) -->
+            @can('view Cohort Management')
+            <li class="nav-item mt-2">
+                <small class="section-label px-3 sidebar-text" style="color: #142552; font-weight: 700;">Cohort Management</small>
+                <hr class="section-divider my-1" style="display:none;">
+            </li>
+
+            <li class="nav-item">
+                <a href="{{ route('cohorts.index') }}" 
+                    class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('cohorts.*') ? 'active-nav' : '' }}" 
+                    data-tooltip="Cohort Management"
+                    style="color: #333; {{ request()->routeIs('cohorts.*') ? 'background-color: #05923b; color: white;' : '' }}">
+                        
+                        <i class="bi bi-people-fill fs-5 nav-icon flex-shrink-0"
+                        style="color: {{ request()->routeIs('cohorts.*') ? 'white' : '#142552' }};"></i>
+                        
+                        <span class="fw-medium sidebar-text ms-3 me-auto"
+                            style="color: {{ request()->routeIs('cohorts.*') ? 'white' : '#142552' }};">
+                            Manage Cohorts
+                        </span>
+                        
+                        <span class="badge ms-2 sidebar-badge flex-shrink-0" 
+                            style="background-color: {{ request()->routeIs('cohorts.*') ? 'white' : '#142552' }}; 
+                                    color: {{ request()->routeIs('cohorts.*') ? '#05923b' : 'white' }};">
+                            Admin
+                        </span>
+                </a>
+            </li>
+            @endcan
+
+            <!-- POST INCUBATION - Admin only (Graduation & Outcomes + Analytics only) -->
             @can('view Cohort Management')
             <li class="nav-item mt-2">
                 <small class="section-label px-3 sidebar-text" style="color: #142552; font-weight: 700;">Post-Incubation</small>
                 <hr class="section-divider my-1" style="display:none;">
             </li>
-
-            <!-- Cohort Management -->
-            <a href="{{ route('cohorts.index') }}" 
-                class="nav-link d-flex align-items-center py-2 px-3 rounded-4 text-dark hover-nav {{ request()->routeIs('cohorts.*') ? 'active-nav' : '' }}" 
-                data-tooltip="Cohort Management"
-                style="color: #333; {{ request()->routeIs('cohorts.*') ? 'background-color: #05923b; color: white;' : '' }}">
-                    
-                    <i class="bi bi-people-fill fs-5 nav-icon flex-shrink-0"
-                    style="color: {{ request()->routeIs('cohorts.*') ? 'white' : '#142552' }};"></i>
-                    
-                    <span class="fw-medium sidebar-text ms-3 me-auto"
-                        style="color: {{ request()->routeIs('cohorts.*') ? 'white' : '#142552' }};">
-                        Manage Cohort
-                    </span>
-                    
-                    <span class="badge ms-2 sidebar-badge flex-shrink-0" 
-                        style="background-color: {{ request()->routeIs('cohorts.*') ? 'white' : '#142552' }}; 
-                                color: {{ request()->routeIs('cohorts.*') ? '#05923b' : 'white' }};">
-                        Admin
-                    </span>
-            </a>
 
             <!-- Graduation & Outcomes -->
             <li class="nav-item">

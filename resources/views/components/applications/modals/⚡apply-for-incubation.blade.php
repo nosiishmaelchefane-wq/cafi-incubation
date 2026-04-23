@@ -30,7 +30,6 @@ new class extends Component
     public $website;
     public $company_type;
     public $industry;
-    public $sector;
     public $country = 'Lesotho';
     public $district;
     public $year_of_establishment;
@@ -90,7 +89,6 @@ new class extends Component
             'website' => 'nullable|url|max:255',
             'company_type' => 'required|string|max:100',
             'industry' => 'required|string|max:100',
-            'sector' => 'required|string|max:100',
             'country' => 'required|string|max:100',
             'district' => 'required|string|max:100',
             'year_of_establishment' => 'required|integer|min:1900|max:' . date('Y'),
@@ -151,7 +149,6 @@ new class extends Component
         $this->website = $application->website;
         $this->company_type = $application->company_type;
         $this->industry = $application->industry;
-        $this->sector = $application->sector;
         $this->country = $application->country;
         $this->district = $application->district;
         $this->year_of_establishment = $application->year_of_establishment;
@@ -226,7 +223,6 @@ new class extends Component
                 'website' => $this->website,
                 'company_type' => $this->company_type,
                 'industry' => $this->industry,
-                'sector' => $this->sector,
                 'country' => $this->country,
                 'district' => $this->district,
                 'year_of_establishment' => $this->year_of_establishment,
@@ -296,7 +292,6 @@ new class extends Component
                 'website' => $this->website,
                 'company_type' => $this->company_type,
                 'industry' => $this->industry,
-                'sector' => $this->sector,
                 'country' => $this->country,
                 'district' => $this->district,
                 'year_of_establishment' => $this->year_of_establishment,
@@ -377,7 +372,6 @@ new class extends Component
         $this->website = '';
         $this->company_type = '';
         $this->industry = '';
-        $this->sector = '';
         $this->country = 'Lesotho';
         $this->district = '';
         $this->year_of_establishment = '';
@@ -551,17 +545,6 @@ new class extends Component
                                     <option>Other</option>
                                 </select>
                                 @error('industry') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                            </div>
-                            <div class="col-12 col-md-4">
-                                <label class="form-label fw-medium small">Sector <span class="text-danger">*</span></label>
-                                <select class="form-select @error('sector') is-invalid @enderror" wire:model="sector">
-                                    <option value="">Select sector</option>
-                                    <option>Primary</option>
-                                    <option>Secondary</option>
-                                    <option>Tertiary</option>
-                                    <option>Quaternary</option>
-                                </select>
-                                @error('sector') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-12 col-md-4">
                                 <label class="form-label fw-medium small">Country <span class="text-danger">*</span></label>

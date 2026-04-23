@@ -22,7 +22,6 @@ return new class extends Migration
             $table->string('website')->nullable();
             $table->string('company_type')->nullable();
             $table->string('industry')->nullable();
-            $table->string('sector')->nullable();
             $table->string('country')->default('Lesotho');
             $table->string('district')->nullable();
             $table->integer('year_of_establishment')->nullable();

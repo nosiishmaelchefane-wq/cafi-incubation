@@ -35,6 +35,16 @@ new class extends Component
         $this->loadScreening();
         $this->isOpen = true;
     }
+
+    /**
+     * Check if the application can be marked as eligible (documents not required)
+     */
+    public function canMarkEligible()
+    {
+        // Only check if all checklist items are passed
+        // Documents are NOT required for eligibility
+        return $this->checklist_stats['allPassed'] && !$this->isLocked();
+    }
     
     public function closePanel()
     {
@@ -187,13 +197,7 @@ new class extends Component
             return;
         }
         
-        // Check if all documents are verified
-        if (!$this->document_stats['allVerified']) {
-            $this->dispatch('notify', type: 'error', message: 'Cannot mark as eligible: Both documents must be verified');
-            return;
-        }
-        
-        // Check if all checklist items are passed
+        // Remove document verification check - only check checklist
         if (!$this->checklist_stats['allPassed']) {
             $this->dispatch('notify', type: 'error', message: 'Cannot mark as eligible: Not all eligibility criteria are met');
             return;
@@ -221,7 +225,6 @@ new class extends Component
         $this->dispatch('applicationUpdated');
         $this->closePanel();
     }
-    
     public function confirmRejection()
     {
         $this->showRejectionSection = true;
@@ -724,7 +727,7 @@ new class extends Component
                     <div class="d-flex flex-column gap-3">
                         <!-- Tax Clearance Certificate -->
                         <div class="d-flex align-items-center justify-content-between p-3 rounded-3 border 
-                            {{ $taxClearanceVerified ? 'border-success bg-success' : ($taxClearancePath ? 'border-warning bg-warning bg-opacity-10' : 'border-secondary bg-light') }}">
+                            {{ $taxClearanceVerified ? 'border-success bg-success' : ($taxClearancePath ? 'border-secondary bg-light' : 'border-secondary bg-light') }}">
                             <div class="d-flex align-items-center gap-3">
                                 <i class="bi {{ $taxClearanceVerified ? 'bi-file-earmark-check-fill text-white' : 'bi-file-earmark-text' }} fs-4"></i>
                                 <div>
@@ -735,7 +738,7 @@ new class extends Component
                                                 {{ basename($taxClearancePath) }}
                                             </a>
                                         @else
-                                            <span class="text-danger">Not uploaded</span>
+                                            <span class="text-muted">Not uploaded (optional)</span>
                                         @endif
                                     </div>
                                 </div>
@@ -759,14 +762,14 @@ new class extends Component
                                         </label>
                                     </div>
                                 @else
-                                    <span class="badge bg-danger">Missing Required</span>
+                                    <span class="badge bg-secondary text-white">Optional</span>
                                 @endif
                             </div>
                         </div>
 
                         <!-- Trader's License -->
                         <div class="d-flex align-items-center justify-content-between p-3 rounded-3 border 
-                            {{ $tradersLicenseVerified ? 'border-success bg-success' : ($tradersLicensePath ? 'border-warning bg-warning bg-opacity-10' : 'border-secondary bg-light') }}">
+                            {{ $tradersLicenseVerified ? 'border-success bg-success' : ($tradersLicensePath ? 'border-secondary bg-light' : 'border-secondary bg-light') }}">
                             <div class="d-flex align-items-center gap-3">
                                 <i class="bi {{ $tradersLicenseVerified ? 'bi-file-earmark-check-fill text-white' : 'bi-file-earmark-text' }} fs-4"></i>
                                 <div>
@@ -777,7 +780,7 @@ new class extends Component
                                                 {{ basename($tradersLicensePath) }}
                                             </a>
                                         @else
-                                            <span class="text-danger">Not uploaded</span>
+                                            <span class="text-muted">Not uploaded (optional)</span>
                                         @endif
                                     </div>
                                 </div>
@@ -801,23 +804,17 @@ new class extends Component
                                         </label>
                                     </div>
                                 @else
-                                    <span class="badge bg-danger">Missing Required</span>
+                                    <span class="badge bg-secondary text-white">Optional</span>
                                 @endif
                             </div>
                         </div>
                     </div>
                     
-                    @if(!$this->document_stats['allUploaded'])
-                    <div class="alert alert-warning small mt-3 d-flex gap-2 align-items-start">
-                        <i class="bi bi-exclamation-triangle-fill mt-1 flex-shrink-0"></i>
-                        <span>Missing required documents. Both Tax Clearance Certificate and Trader's License are required for eligibility.</span>
-                    </div>
-                    @elseif(!$this->document_stats['allVerified'] && !$this->isLocked())
+                    <!-- Informational message only - not a blocker -->
                     <div class="alert alert-info small mt-3 d-flex gap-2 align-items-start">
                         <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
-                        <span>Please review and verify both documents before marking as eligible.</span>
+                        <span>Document verification is optional. Uploaded documents can be verified for reference, but they are not required for eligibility approval.</span>
                     </div>
-                    @endif
                 </div>
 
                 <!-- Eligibility Tab -->
@@ -960,7 +957,6 @@ new class extends Component
                             </button>
                         @else
                             @can('create Screening & Eligibility')
-
                                 <button class="btn btn-sm btn-outline-danger px-3" 
                                         wire:click="confirmRejection"
                                         wire:confirm="⚠️ WARNING: You are about to reject this application.\n\nPlease ensure you have reviewed all documents and checklist items.\n\nOnce rejected, this decision will be final and cannot be changed.\n\nDo you want to continue?">
@@ -969,11 +965,10 @@ new class extends Component
 
                                 <button class="btn btn-sm btn-success px-3" 
                                         wire:click="markAsEligible"
-                                        wire:confirm="✅ IMPORTANT DECISION: You are about to mark this application as ELIGIBLE.\n\nThis means:\n• The applicant will be notified of their eligibility\n• The application will move to the next stage\n• This decision will be recorded in the system\n\nOnce marked eligible, you cannot change this decision.\n\nPlease verify all documents and checklist items are complete.\n\nAre you sure you want to mark this application as ELIGIBLE?"
-                                        @if(!$this->document_stats['allVerified'] || !$this->checklist_stats['allPassed']) disabled @endif>
+                                        wire:confirm="✅ IMPORTANT DECISION: You are about to mark this application as ELIGIBLE.\n\nThis means:\n• The applicant will be notified of their eligibility\n• The application will move to the next stage\n• This decision will be recorded in the system\n\nOnce marked eligible, you cannot change this decision.\n\nAre you sure you want to mark this application as ELIGIBLE?"
+                                        @if(!$this->canMarkEligible()) disabled @endif>
                                     <i class="bi bi-check-circle me-1"></i>Mark Eligible
                                 </button>
-
                             @endcan
                         @endif
                     @endif

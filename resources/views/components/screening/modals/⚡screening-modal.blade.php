@@ -148,8 +148,6 @@ new class extends Component
     public function getDefaultChecklist()
     {
         return [
-            ['label' => 'Business is formally registered', 'hint' => "Valid Trader's License present", 'passed' => null],
-            ['label' => 'Valid Tax Clearance Certificate submitted', 'hint' => 'Not expired at time of submission', 'passed' => null],
             ['label' => 'Business operates in a target sector', 'hint' => 'Aligned with NSDP II priority sectors', 'passed' => null],
             ['label' => 'Business is within the geographic focus area', 'hint' => 'Registered or operating in Lesotho', 'passed' => null],
             ['label' => 'Application form fully completed', 'hint' => 'All mandatory fields filled', 'passed' => null],

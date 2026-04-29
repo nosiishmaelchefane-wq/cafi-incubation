@@ -1572,11 +1572,157 @@ textarea.ch-input { resize: vertical; min-height: 80px; }
 .kpi-mini { border-radius: 12px !important; cursor: pointer; transition: all 0.2s; border: 2px solid transparent !important; }
 .kpi-active { border-color: #0d6efd !important; box-shadow: 0 0 0 3px rgba(13,110,253,0.15) !important; }
 .nav-link.active { border-bottom-color: #0d6efd !important; color: #0d6efd !important; }
+
+.sl-page {
+    --r:14px; --r-sm:8px; --r-xs:6px;
+    --border:#e8ecf0; --bg:#f8fafc;
+    --text:#0f172a; --muted:#64748b;
+    font-family:'Inter',system-ui,sans-serif; color:var(--text);
+}
+
+/* ── Buttons ── */
+.sl-btn-primary { background:#1d4ed8; color:#fff; border:none; border-radius:var(--r-sm); font-weight:600; font-size:.82rem; padding:8px 16px; transition:all .15s; }
+.sl-btn-primary:hover { background:#1e40af; color:#fff; transform:translateY(-1px); }
+.sl-btn-ghost { background:transparent; border:1px solid var(--border); color:var(--text); border-radius:var(--r-sm); font-weight:500; font-size:.82rem; padding:8px 14px; transition:all .12s; }
+.sl-btn-ghost:hover { background:var(--bg); }
+.sl-ghost-xs { font-size:.72rem; padding:2px 8px; border:1px solid var(--border); border-radius:6px; background:#fff; color:var(--muted); cursor:pointer; transition:all .12s; }
+.sl-ghost-xs:hover { border-color:#93c5fd; color:#1d4ed8; background:#eff6ff; }
+.sl-score-btn { font-size:.72rem; padding:2px 10px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:6px; cursor:pointer; }
+
+/* ── Stepper ── */
+.sl-stepper-step {
+    padding:16px 20px; cursor:pointer; transition:all .15s;
+    border-right:1px solid var(--border);
+    position:relative;
+}
+.sl-stepper-step:last-child { border-right:none; }
+.sl-stepper-step:hover { background:#fafbff; }
+.sl-step-done { background:linear-gradient(180deg,#f0fdf4 0%,#fff 100%); }
+.sl-step-future {}
+.sl-step-circle { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.72rem; flex-shrink:0; }
+.sc-done  { background:#10b981; color:#fff; }
+.sc-active{ background:#1d4ed8; color:#fff; box-shadow:0 0 0 3px rgba(29,78,216,.2); }
+.sc-future{ background:#e9ecef; color:#6c757d; }
+.sl-step-desc { font-size:.68rem; color:var(--muted); margin-top:2px; }
+.sl-step-count{ font-size:.68rem; font-weight:700; margin-top:4px; }
+
+/* ── KPI ── */
+.sl-kpi {
+    background:#fff; border:1px solid var(--border); border-radius:var(--r);
+    padding:14px; display:flex; align-items:flex-start; gap:12px;
+    box-shadow:0 1px 3px rgba(0,0,0,.04); cursor:pointer; transition:all .15s;
+}
+.sl-kpi:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(0,0,0,.08); }
+.sl-kpi-icon { width:38px; height:38px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:.9rem; }
+.sl-kpi-val  { font-size:1.5rem; font-weight:800; letter-spacing:-.03em; line-height:1; }
+.sl-kpi-label{ font-size:.72rem; color:var(--muted); font-weight:500; margin-top:2px; }
+
+/* ── Cards ── */
+.sl-card { background:#fff; border:1px solid var(--border); border-radius:var(--r); overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.sl-card-header { display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid var(--border); background:#fafbfc; flex-wrap:wrap; }
+.sl-icon-sm { width:28px; height:28px; border-radius:7px; background:rgba(59,130,246,.1); color:#3b82f6; display:flex; align-items:center; justify-content:center; font-size:.78rem; flex-shrink:0; }
+.sl-section-sub { font-size:.72rem; color:var(--muted); }
+
+/* ── Tab bar ── */
+.sl-tab-row { display:flex; gap:0; overflow-x:auto; }
+.sl-tab { padding:10px 16px; border:none; background:none; white-space:nowrap; font-size:.82rem; font-weight:500; color:var(--muted); border-bottom:2px solid transparent; cursor:pointer; transition:all .12s; }
+.sl-tab:hover { color:var(--text); }
+.sl-tab-active { color:#1d4ed8 !important; border-bottom-color:#1d4ed8 !important; font-weight:600; }
+.sl-tab-badge { background:#f1f5f9; color:var(--muted); border-radius:99px; padding:1px 7px; font-size:.65rem; font-weight:700; margin-left:4px; }
+.sl-tab-active .sl-tab-badge { background:#dbeafe; color:#1d4ed8; }
+.sl-count-badge { background:#eff6ff; color:#1d4ed8; border-radius:99px; padding:2px 10px; font-size:.72rem; font-weight:700; }
+
+/* ── Search / select ── */
+.sl-search-wrap { position:relative; }
+.sl-search-icon { position:absolute; left:9px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:.75rem; }
+.sl-search-input { padding:7px 9px 7px 28px; border:1px solid var(--border); border-radius:var(--r-sm); font-size:.82rem; background:#fff; width:210px; }
+.sl-search-input:focus { outline:none; border-color:#3b82f6; }
+.sl-select { padding:7px 10px; border:1px solid var(--border); border-radius:var(--r-sm); font-size:.82rem; background:#fff; color:var(--text); }
+
+/* ── Table ── */
+.sl-table { font-size:.82rem; }
+.sl-table thead tr { background:#f8fafc; }
+.sl-table thead th { font-weight:600; font-size:.67rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:10px 12px; border-bottom:1px solid var(--border); border-top:none; white-space:nowrap; }
+.sl-table tbody td { padding:10px 12px; border-bottom:1px solid #f8fafc; }
+.sl-table tbody tr:hover { background:#fafbff; }
+.sl-row-accepted { background:#f0fdf4 !important; }
+.sl-row-failed   { background:#fff1f2 !important; opacity:.7; }
+.sl-row-replaced { background:#f1f5f9 !important; opacity:.5; }
+
+/* ── Rank badges ── */
+.sl-rank-badge { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:800; flex-shrink:0; }
+.rank-gold   { background:#fef08a; color:#a16207; border:2px solid #eab308; }
+.rank-silver { background:#e5e7eb; color:#374151; border:2px solid #9ca3af; }
+.rank-bronze { background:#fed7aa; color:#9a3412; border:2px solid #f97316; }
+.rank-purple { background:#ede9fe; color:#7c3aed; border:2px solid #c4b5fd; }
+.rank-blue   { background:#dbeafe; color:#1d4ed8; border:2px solid #93c5fd; }
+.rank-default{ background:#f3f4f6; color:#6b7280; border:2px solid #e5e7eb; }
+
+/* ── Avatars ── */
+.sl-av { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:.68rem; font-weight:800; flex-shrink:0; }
+.av-blue{background:#dbeafe;color:#1d4ed8;} .av-green{background:#dcfce7;color:#15803d;}
+.av-orange{background:#ffedd5;color:#c2410c;} .av-purple{background:#ede9fe;color:#7c3aed;}
+.av-pink{background:#fce7f3;color:#be185d;} .av-teal{background:#ccfbf1;color:#0f766e;}
+
+/* ── Tags ── */
+.sl-sector-tag { font-size:.72rem; font-weight:500; color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; border-radius:5px; padding:2px 9px; }
+.sl-total-score { display:inline-flex; align-items:center; justify-content:center; font-size:.88rem; font-weight:800; width:48px; height:28px; border-radius:7px; background:#f1f5f9; }
+
+/* ── Status pills ── */
+.sl-status-pill { display:inline-flex; align-items:center; font-size:.66rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:3px 9px; border-radius:99px; white-space:nowrap; }
+.pill-top20     { background:#fef9c3; color:#a16207; }
+.pill-pitched   { background:#e0f2fe; color:#0369a1; }
+.pill-top10     { background:#ede9fe; color:#7c3aed; }
+.pill-prov-top10{ background:#fce7f3; color:#be185d; }
+.pill-ddpass    { background:#dcfce7; color:#15803d; }
+.pill-ddfail    { background:#fee2e2; color:#dc2626; }
+.pill-accepted  { background:#dcfce7; color:#15803d; }
+.pill-replaced  { background:#f1f5f9; color:#64748b; }
+.pill-not-shortlisted { background:#f1f5f9; color:#94a3b8; }
+.pill-completed { background:#ede9fe; color:#7c3aed; }
+.pill-upcoming  { background:#dbeafe; color:#1d4ed8; }
+.pill-draft     { background:#f1f5f9; color:#94a3b8; }
+
+/* ── DD badges ── */
+.sl-dd-badge { display:inline-block; font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; border-radius:99px; padding:2px 9px; }
+.dd-pass    { background:#dcfce7; color:#15803d; }
+.dd-fail    { background:#fee2e2; color:#dc2626; }
+.dd-pending { background:#fef9c3; color:#a16207; }
+
+/* ── PDO dots ── */
+.sl-pdo { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.58rem; font-weight:800; flex-shrink:0; }
+.pdo-w{background:#fce7f3;color:#be185d;} .pdo-y{background:#dcfce7;color:#15803d;}
+.pdo-r{background:#fef9c3;color:#a16207;} .pdo-off{background:#f1f5f9;color:#d1d5db;}
+
+/* ── Evaluator chips ── */
+.sl-ev-chip { font-size:.65rem; font-weight:600; background:#f1f5f9; color:var(--muted); border-radius:4px; padding:1px 6px; cursor:default; }
+
+/* ── Pagination ── */
+.sl-pag-bar { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; border-top:1px solid var(--border); flex-wrap:wrap; gap:8px; }
+.sl-pg-btn { width:30px; height:30px; border-radius:6px; border:1px solid var(--border); background:#fff; color:var(--muted); cursor:pointer; font-size:.75rem; display:inline-flex; align-items:center; justify-content:center; transition:all .12s; }
+.sl-pg-btn:disabled { opacity:.35; cursor:default; }
+.sl-pg-btn:not(:disabled):hover { border-color:#93c5fd; color:#1d4ed8; background:#eff6ff; }
+.sl-pg-active { background:#1d4ed8 !important; border-color:#1d4ed8 !important; color:#fff !important; font-weight:700; }
+
+/* ── Action buttons ── */
+.sl-action-btn { width:28px; height:28px; border-radius:6px; border:1px solid var(--border); background:#fff; color:var(--muted); cursor:pointer; font-size:.78rem; display:inline-flex; align-items:center; justify-content:center; transition:all .12s; }
+.sl-action-btn:hover { background:#eff6ff; border-color:#93c5fd; color:#1d4ed8; }
+.sl-action-btn:disabled { opacity:0.5; cursor:not-allowed; }
+.sl-action-link { display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:var(--r-sm); border:1px solid var(--border); background:#fff; font-size:.82rem; font-weight:500; color:var(--text); cursor:pointer; transition:all .12s; }
+.sl-action-link:hover { background:#eff6ff; border-color:#93c5fd; color:#1d4ed8; }
+
+/* ── Panel (hidden static) ── */
+.sl-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1040; display:none; }
+.sl-panel { position:fixed; top:0; right:0; bottom:0; width:100%; max-width:520px; z-index:1050; background:#fff; display:none; flex-direction:column; box-shadow:-4px 0 32px rgba(0,0,0,.14); }
+
+
+/* ── Tooltip hover effect for icons -- native title attribute will handle this */
 @media (max-width: 576px) {
     .hide-xs { display: none !important; }
     .row-actions .btn { opacity: 1; }
      .modal-panel { max-width: 100%; }
      .ch-panel { max-width: 100%; }
+     .sl-panel { display:none; } 
 }
 @media (max-width: 768px) {
     .hide-sm { display: none !important; }

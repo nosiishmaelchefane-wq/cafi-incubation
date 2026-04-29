@@ -737,9 +737,9 @@ new class extends Component
                                 @if(auth()->user()->hasRole('Evaluation Officer'))
                                     <td class="text-center">
                                         @if($myScore)
-                                            <span class="badge bg-primary bg-opacity-15 text-primary fw-bold px-2 py-1 rounded-pill">{{ round($myScore) }}/100</span>
+                                            <span class="badge bg-primary bg-opacity-15 text-white fw-bold px-2 py-1 rounded-pill">{{ round($myScore) }}/100</span>
                                         @else
-                                            <span class="badge bg-warning bg-opacity-15 text-warning px-2 py-1 rounded-pill">Pending</span>
+                                            <span class="badge bg-warning bg-opacity-15 text-white px-2 py-1 rounded-pill">Pending</span>
                                         @endif
                                     </td>
                                 @endif

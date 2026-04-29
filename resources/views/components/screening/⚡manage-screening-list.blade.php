@@ -478,7 +478,7 @@ new class extends Component {
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-1">
                                     <!-- Only show action buttons when status is 'in_review' -->
-                                    @if($app->status == 'in_review' || $app->status == 'eligible')
+                                    @if($app->status == 'in_review' || $app->status == 'eligible' || $app->status == 'rejected')
                                         <button class="btn btn-sm btn-outline-primary py-1 px-2" 
                                                 wire:click="$dispatch('openReviewPanel', { applicationId: {{ $app->id }} })" 
                                                 title="Review Application">
